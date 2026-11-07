@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบบริหารจัดการงานรับสมัครเรียน | วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์</title>
+  
+  <!-- Sarabun Font (Google Fonts) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js CDN for Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body style="background-color: #f1f5f9;">
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="container top-bar-inner">
+      <div>ระบบบริหารงานทะเบียนและประมวลผลข้อมูลการรับสมัครนักเรียน นักศึกษา (รอบโควตา)</div>
+      <div id="staffStatusBadge">สถานะ: ยังไม่ได้เข้าสู่ระบบ</div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="header-brand">
+        <img src="assets/images/logo.png" alt="ตราสัญลักษณ์วิทยาลัย" class="header-logo">
+        <div class="header-titles">
+          <span class="header-sub">วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์ สังกัด สอศ.</span>
+          <h1 class="header-main" style="font-size: 19px;">ระบบบริหารจัดการการรับสมัครเรียน (Admin Portal)</h1>
+          <span class="header-tag">งานทะเบียนและวัดผล ประจำปีการศึกษา 2570</span>
+        </div>
+      </div>
+      <div id="staffUserHeader" style="display: none; text-align: right;">
+        <div style="font-size: 14px; font-weight: 600; color: var(--primary-navy);" id="currentStaffName">นายทะเบียน ทดสอบ</div>
+        <div style="font-size: 12px; color: var(--text-muted);" id="currentStaffRole">เจ้าหน้าที่ทะเบียน</div>
+        <button class="btn btn-secondary btn-sm" style="margin-top: 4px;" onclick="handleStaffLogout()">ออกจากระบบ</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================================================================
+       LOGIN SCREEN (If not authenticated)
+       ====================================================================== -->
+  <div id="loginScreen" class="main-content" style="display: block;">
+    <div class="container" style="max-width: 440px;">
+      <div class="card" style="margin-top: 30px;">
+        <div class="card-header official-navy">
+          <div>
+            <h3 class="card-title">เข้าสู่ระบบสำหรับเจ้าหน้าที่</h3>
+            <div class="card-subtitle" style="color: #cbd5e1;">กรุณายืนยันตัวตนเพื่อเข้าถึงฐานข้อมูลงานทะเบียน</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <form id="staffLoginForm" onsubmit="handleStaffLogin(event)">
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label class="form-label" for="staffUsername">ชื่อผู้ใช้งาน (Username) <span class="required">*</span></label>
+              <input type="text" id="staffUsername" class="form-control" required placeholder="ระบุชื่อผู้ใช้ เช่น admin หรือ registrar">
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+              <label class="form-label" for="staffPassword">รหัสผ่าน (Password) <span class="required">*</span></label>
+              <input type="password" id="staffPassword" class="form-control" required placeholder="ระบุรหัสผ่าน">
+            </div>
+            <div style="margin-bottom: 15px; font-size: 12px; background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 4px;">
+              <strong>บัญชีผู้ใช้เริ่มต้นสำหรับทดสอบระบบ:</strong><br>
+              - ผู้ดูแลระบบ: <code>admin</code> / รหัสผ่าน: <code>admin1234</code><br>
+              - เจ้าหน้าที่ทะเบียน: <code>registrar</code> / รหัสผ่าน: <code>reg1234</code>
+            </div>
+            <button type="submit" id="btnLogin" class="btn btn-primary btn-block btn-lg">เข้าสู่ระบบ</button>
+          </form>
+        </div>
+        <div class="card-footer" style="text-align: center; font-size: 13px;">
+          <a href="index.html" style="color: var(--primary-navy); text-decoration: none;">&larr; กลับไปยังหน้าหลักผู้สมัครเรียน</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       ADMIN DASHBOARD INTERFACE (Authenticated)
+       ====================================================================== -->
+  <div id="adminInterface" style="display: none;">
+    
+    <!-- Admin Navigation Bar -->
+    <nav class="navbar">
+      <div class="container">
+        <ul class="nav-list" id="adminNav">
+          <li class="nav-item">
+            <a href="#applicants" class="nav-link active" data-tab="tab-admin-applicants">รายชื่อผู้สมัครเรียน</a>
+          </li>
+          <li class="nav-item">
+            <a href="#enrollment" class="nav-link" data-tab="tab-admin-enrollment">ระบบรายงานตัวและมอบตัว</a>
+          </li>
+          <li class="nav-item">
+            <a href="#dashboard" class="nav-link" data-tab="tab-admin-dashboard">สรุปสถิติ & กราฟ (Analytics)</a>
+          </li>
+          <li class="nav-item">
+            <a href="#export" class="nav-link" data-tab="tab-admin-export">ส่งออกข้อมูล (ศธ.02)</a>
+          </li>
+          <li class="nav-item" id="adminSettingsNavItem">
+            <a href="#settings" class="nav-link" data-tab="tab-admin-settings">ตั้งค่าระบบและสาขาวิชา</a>
+          </li>
+          <li class="nav-item">
+            <a href="#audit" class="nav-link" data-tab="tab-admin-audit">ประวัติการดำเนินการ (Audit Log)</a>
+          </li>
+          <li class="nav-item staff-link">
+            <a href="index.html" target="_blank" class="nav-link">ดูหน้าเว็บผู้สมัคร &UpperRightArrow;</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <div class="container">
+
+        <!-- ================================================================
+             TAB 1: รายชื่อผู้สมัคร (Applicants Registry)
+             ================================================================ -->
+        <section id="tab-admin-applicants" class="tab-pane active">
+          
+          <!-- Filter Controls -->
+          <div class="card">
+            <div class="card-body" style="padding: 16px;">
+              <div class="form-grid" style="align-items: flex-end;">
+                <div class="col-4">
+                  <div class="form-group">
+                    <label class="form-label" for="filterSearch">ค้นหา (ชื่อ-สกุล, เลขบัตร 13 หลัก, เลขที่ใบสมัคร)</label>
+                    <input type="text" id="filterSearch" class="form-control" placeholder="พิมพ์เพื่อค้นหา..." oninput="filterApplicantsTable()">
+                  </div>
+                </div>
+                <div class="col-3">
+                  <div class="form-group">
+                    <label class="form-label" for="filterLevel">ระดับการศึกษา</label>
+                    <select id="filterLevel" class="form-control" onchange="filterApplicantsTable()">
+                      <option value="">ทั้งหมด</option>
+                      <option value="ปวช.">ปวช.</option>
+                      <option value="ปวส.">ปวส. (ทั้งหมด)</option>
+                      <option value="ปวส. (สายตรง)">ปวส. (สายตรง)</option>
+                      <option value="ปวส. (ม.6/ปวช. ต่างสาขา)">ปวส. (ม.6/ปวช. ต่างสาขา)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-3">
+                  <div class="form-group">
+                    <label class="form-label" for="filterStatus">สถานะการสมัคร</label>
+                    <select id="filterStatus" class="form-control" onchange="filterApplicantsTable()">
+                      <option value="">ทุกสถานะ</option>
+                      <option value="รอตรวจสอบ">รอตรวจสอบ</option>
+                      <option value="เอกสารไม่ครบ (แก้ไข)">เอกสารไม่ครบ (แก้ไข)</option>
+                      <option value="ผ่านการคัดเลือก">ผ่านการคัดเลือก</option>
+                      <option value="ไม่ผ่าน">ไม่ผ่าน</option>
+                      <option value="มอบตัวแล้ว">มอบตัวแล้ว</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-2">
+                  <button class="btn btn-secondary btn-block" onclick="resetApplicantFilters()">ล้างตัวกรอง</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Official Registry Table -->
+          <div class="card">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 class="card-title">ทะเบียนรายชื่อผู้สมัครเข้าศึกษาต่อ (รอบโควตา 2570)</h3>
+                <div class="card-subtitle">แสดงข้อมูลตามแบบฟอร์มงานทะเบียนและประมวลผล สอศ.</div>
+              </div>
+              <div>
+                <span style="font-size: 13px; color: var(--text-muted);">จำนวนที่พบ: </span>
+                <strong id="applicantCountBadge" style="color: var(--primary-navy); font-size: 15px;">0 รายการ</strong>
+              </div>
+            </div>
+            
+            <div class="table-responsive">
+              <table class="table-official" id="applicantsTable">
+                <thead>
+                  <tr>
+                    <th style="width: 100px;">เลขที่ใบสมัคร</th>
+                    <th style="width: 130px;">เลขประจำตัว ปชช.</th>
+                    <th>ชื่อ - นามสกุล</th>
+                    <th style="width: 110px;">ระดับ</th>
+                    <th>สาขาวิชาที่เลือก</th>
+                    <th style="width: 70px; text-align: center;">GPAX</th>
+                    <th style="width: 120px;">วันที่ยื่น</th>
+                    <th style="width: 130px; text-align: center;">สถานะ</th>
+                    <th style="width: 120px; text-align: center;">การจัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="applicantsTableBody">
+                  <tr>
+                    <td colspan="9" style="text-align: center; padding: 25px; color: var(--text-muted);">กำลังโหลดข้อมูลผู้สมัคร...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+
+        </section>
+
+        <!-- ================================================================
+             TAB 2: ระบบรายงานตัวและมอบตัว (Enrollment)
+             ================================================================ -->
+        <section id="tab-admin-enrollment" class="tab-pane" style="display: none;">
+          
+          <div class="card">
+            <div class="card-header official-navy">
+              <div>
+                <h3 class="card-title">ระบบรายงานตัวและบันทึกการมอบตัวนักเรียน นักศึกษาใหม่</h3>
+                <div class="card-subtitle" style="color: #cbd5e1;">สำหรับผู้สมัครที่มีสถานะ "ผ่านการคัดเลือก" และออกรหัสนักเรียนอัตโนมัติ</div>
+              </div>
+            </div>
+            <div class="card-body">
+              
+              <div class="table-responsive">
+                <table class="table-official">
+                  <thead>
+                    <tr>
+                      <th>เลขที่ใบสมัคร</th>
+                      <th>ชื่อ - นามสกุล</th>
+                      <th>ระดับ</th>
+                      <th>สาขาวิชา</th>
+                      <th>รหัสนักเรียน</th>
+                      <th>สถานะปัจจุบัน</th>
+                      <th style="text-align: center;">ดำเนินการมอบตัว</th>
+                    </tr>
+                  </thead>
+                  <tbody id="enrollmentTableBody">
+                    <tr>
+                      <td colspan="7" style="text-align: center; padding: 20px;">ไม่มีผู้สมัครที่รอการมอบตัว</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ================================================================
+             TAB 3: Dashboard & Analytics
+             ================================================================ -->
+        <section id="tab-admin-dashboard" class="tab-pane" style="display: none;">
+          
+          <!-- KPI Summary Cards -->
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-title">ผู้สมัครทั้งหมด</div>
+              <div class="stat-value" id="statTotal">0</div>
+              <div class="stat-desc">คน ในปีการศึกษา 2570</div>
+            </div>
+            <div class="stat-card stat-pending">
+              <div class="stat-title">รอเจ้าหน้าที่ตรวจสอบ</div>
+              <div class="stat-value" id="statPending">0</div>
+              <div class="stat-desc">ใบสมัครใหม่</div>
+            </div>
+            <div class="stat-card stat-fix">
+              <div class="stat-title">เอกสารไม่ครบ / ให้แก้ไข</div>
+              <div class="stat-value" id="statFix">0</div>
+              <div class="stat-desc">รอผู้สมัครอัปโหลดใหม่</div>
+            </div>
+            <div class="stat-card stat-approved">
+              <div class="stat-title">ผ่านการคัดเลือก</div>
+              <div class="stat-value" id="statApproved">0</div>
+              <div class="stat-desc">มีสิทธิ์เข้าศึกษา</div>
+            </div>
+            <div class="stat-card stat-enrolled">
+              <div class="stat-title">มอบตัวแล้ว</div>
+              <div class="stat-value" id="statEnrolled">0</div>
+              <div class="stat-desc">ขึ้นทะเบียนเป็นนักเรียน/นศ.</div>
+            </div>
+          </div>
+
+          <!-- Charts Grid (Clean Blue Tone-on-Tone) -->
+          <div class="form-grid">
+            
+            <div class="col-6">
+              <div class="card">
+                <div class="card-header">
+                  <h4 class="card-title">สัดส่วนผู้สมัครแยกตามระดับการศึกษา</h4>
+                </div>
+                <div class="card-body">
+                  <canvas id="chartLevel" height="240"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-6">
+              <div class="card">
+                <div class="card-header">
+                  <h4 class="card-title">ยอดผู้สมัครแยกตามสาขาวิชา</h4>
+                </div>
+                <div class="card-body">
+                  <canvas id="chartMajor" height="240"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-6">
+              <div class="card">
+                <div class="card-header">
+                  <h4 class="card-title">5 อันดับสถานศึกษาเดิมที่มีผู้สมัครมากที่สุด</h4>
+                </div>
+                <div class="card-body">
+                  <canvas id="chartSchool" height="240"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-6">
+              <div class="card">
+                <div class="card-header">
+                  <h4 class="card-title">การกระจายตัวของผู้สมัครแยกตามจังหวัด</h4>
+                </div>
+                <div class="card-body">
+                  <canvas id="chartProvince" height="240"></canvas>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+        <!-- ================================================================
+             TAB 4: ส่งออกข้อมูล (Export ศธ.02)
+             ================================================================ -->
+        <section id="tab-admin-export" class="tab-pane" style="display: none;">
+          
+          <div class="card">
+            <div class="card-header official-navy">
+              <div>
+                <h3 class="card-title">ส่งออกข้อมูลงานทะเบียนผู้สมัคร (มาตรฐาน ศธ.02)</h3>
+                <div class="card-subtitle" style="color: #cbd5e1;">สามารถดาวน์โหลดในรูปแบบไฟล์ CSV / Excel สำหรับใช้ในงานทะเบียนและประมวลผล สอศ.</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div style="background-color: #fafbfc; border: 1px solid var(--border-color); padding: 20px; border-radius: 4px; margin-bottom: 20px;">
+                <h4 style="color: var(--primary-navy); margin-bottom: 10px;">รูปแบบมาตรฐานข้อมูลการส่งออก</h4>
+                <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8;">
+                  ไฟล์ที่ส่งออกจะจัดเรียงคอลัมน์ตามเกณฑ์มาตรฐานงานทะเบียน สอศ. (แบบ ศธ.๐๒) ประกอบด้วย:
+                  เลขที่ใบสมัคร, รหัสนักเรียน (กรณีมอบตัวแล้ว), เลขประจำตัวประชาชน 13 หลัก, คำนำหน้า, ชื่อ, นามสกุล, 
+                  ระดับการศึกษา, สาขาวิชา, เกรดเฉลี่ยสะสม (GPAX), โรงเรียนเดิม, จังหวัดโรงเรียนเดิม, เบอร์โทรศัพท์, 
+                  ชื่อบิดา, ชื่อมารดา, ที่อยู่, สถานะการสมัคร และวันที่ยื่นใบสมัคร
+                </p>
+              </div>
+
+              <div style="display: flex; gap: 15px;">
+                <button class="btn btn-success btn-lg" onclick="exportApplicantsData('csv')">
+                  ส่งออกเป็นไฟล์ CSV (UTF-8 รองรับ Excel)
+                </button>
+                <button class="btn btn-primary btn-lg" onclick="exportApplicantsData('excel')">
+                  ส่งออกเป็นรายงานตาราง Excel (HTML Table .xls)
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ================================================================
+             TAB 5: ระบบตั้งค่า (Settings - Admin Only)
+             ================================================================ -->
+        <section id="tab-admin-settings" class="tab-pane" style="display: none;">
+          
+          <div class="card">
+            <div class="card-header official-navy">
+              <div>
+                <h3 class="card-title">การตั้งค่าระบบรับสมัครและจัดการสาขาวิชา</h3>
+                <div class="card-subtitle" style="color: #cbd5e1;">การแก้ไขในส่วนนี้จะส่งผลต่อการแสดงผลของหน้าเว็บและฟอร์มรับสมัครแบบ Dynamic</div>
+              </div>
+            </div>
+            <div class="card-body">
+              
+              <form id="systemSettingsForm" onsubmit="handleSaveSettings(event)">
+                
+                <div class="form-section">
+                  <div class="section-legend">
+                    <span>1. สถานะการเปิดรับสมัครและกำหนดเวลา</span>
+                  </div>
+                  <div class="form-grid">
+                    <div class="col-4">
+                      <div class="form-group">
+                        <label class="form-label">สถานะระบบรับสมัคร</label>
+                        <select id="settingIsOpen" class="form-control">
+                          <option value="true">เปิดรับสมัคร (ปกติ)</option>
+                          <option value="false">ปิดรับสมัครชั่วคราว</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-4">
+                      <div class="form-group">
+                        <label class="form-label" for="settingStartDate">วันที่เริ่มต้นรับสมัคร</label>
+                        <input type="date" id="settingStartDate" class="form-control" value="2026-12-01">
+                      </div>
+                    </div>
+                    <div class="col-4">
+                      <div class="form-group">
+                        <label class="form-label" for="settingEndDate">วันที่สิ้นสุดรับสมัคร</label>
+                        <input type="date" id="settingEndDate" class="form-control" value="2027-01-31">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-section">
+                  <div class="section-legend">
+                    <span>2. รายชื่อสาขาวิชาที่เปิดรับ ระดับ ปวช. (1 บรรทัดต่อ 1 สาขาวิชา)</span>
+                  </div>
+                  <textarea id="settingBranchesPWC" class="form-control" rows="6"></textarea>
+                  <div class="note" style="margin-top: 6px;">ระบบจะดึงรายชื่อเหล่านี้ไปแสดงใน Dropdown ข้อ 6 ของแบบฟอร์ม ปวช. โดยอัตโนมัติ</div>
+                </div>
+
+                <div class="form-section">
+                  <div class="section-legend">
+                    <span>3. รายชื่อสาขาวิชาที่เปิดรับ ระดับ ปวส. (1 บรรทัดต่อ 1 สาขาวิชา)</span>
+                  </div>
+                  <textarea id="settingBranchesPWS" class="form-control" rows="6"></textarea>
+                  <div class="note" style="margin-top: 6px;">ระบบจะดึงรายชื่อเหล่านี้ไปแสดงใน Dropdown ข้อ 6 ของแบบฟอร์ม ปวส. โดยอัตโนมัติ</div>
+                </div>
+
+                <div class="form-section">
+                  <div class="section-legend">
+                    <span>4. การแจ้งเตือนผ่าน LINE Notify / LINE OA</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="settingLineToken">LINE Notify Token (สำหรับส่งแจ้งเตือนกลุ่มงานทะเบียน)</label>
+                    <input type="text" id="settingLineToken" class="form-control" placeholder="ใส่ LINE Notify Token ของกลุ่มเจ้าหน้าที่">
+                    <div class="note" style="margin-top: 4px;">เมื่อมีผู้สมัครยื่นใบสมัครเข้ามาใหม่ ระบบจะส่งข้อความแจ้งเตือนเข้ากลุ่ม LINE ทันที</div>
+                  </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end;">
+                  <button type="submit" class="btn btn-primary btn-lg">บันทึกการตั้งค่า</button>
+                </div>
+
+              </form>
+
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ================================================================
+             TAB 6: ประวัติการดำเนินการ (Audit Log)
+             ================================================================ -->
+        <section id="tab-admin-audit" class="tab-pane" style="display: none;">
+          
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">บันทึกประวัติการเปลี่ยนสถานะและการทำงาน (Audit Trail)</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="table-official">
+                <thead>
+                  <tr>
+                    <th style="width: 160px;">วัน/เวลา</th>
+                    <th style="width: 140px;">ผู้ดำเนินการ</th>
+                    <th style="width: 120px;">เลขที่ใบสมัคร</th>
+                    <th style="width: 180px;">การดำเนินการ</th>
+                    <th>หมายเหตุ / รายละเอียด</th>
+                  </tr>
+                </thead>
+                <tbody id="auditTableBody">
+                  <tr>
+                    <td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">ยังไม่มีประวัติการบันทึก</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ======================================================================
+       MODAL: รายละเอียดผู้สมัคร & จัดการสถานะ (Applicant Details & Review)
+       ====================================================================== -->
+  <div id="modalApplicantDetail" class="modal-overlay">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalDetailTitle">รายละเอียดใบสมัคร</h3>
+        <button class="modal-close" onclick="closeModal('modalApplicantDetail')">&times;</button>
+      </div>
+      <div class="modal-body" id="modalDetailBody">
+        <!-- Rendered dynamically by admin.js -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modalApplicantDetail')">ปิดหน้าต่าง</button>
+        <button class="btn btn-primary" onclick="submitStatusUpdate()">บันทึกการเปลี่ยนสถานะ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       MODAL: บันทึกการมอบตัว (Enrollment Modal)
+       ====================================================================== -->
+  <div id="modalEnrollmentForm" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">บันทึกการรายงานตัวและมอบตัวเข้าเป็นนักเรียน/นักศึกษา</h3>
+        <button class="modal-close" onclick="closeModal('modalEnrollmentForm')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="enrollmentForm" onsubmit="submitEnrollment(event)">
+          <input type="hidden" id="enrollAppId">
+          
+          <div style="background-color: #f8fafc; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-bottom: 16px;">
+            <div><strong>ผู้สมัคร:</strong> <span id="enrollStudentName">-</span></div>
+            <div><strong>ระดับ / สาขาวิชา:</strong> <span id="enrollLevelMajor">-</span></div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label" for="enrollStudentId">รหัสนักเรียน (สร้างอัตโนมัติ) <span class="required">*</span></label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="enrollStudentId" class="form-control" required readonly style="font-weight: 700; color: var(--primary-navy);">
+              <button type="button" class="btn btn-secondary" onclick="generateStudentId()">สร้างรหัสใหม่</button>
+            </div>
+            <div class="note">รูปแบบ: ๗๐ (ปีการศึกษา) + รหัสสาขา + ลำดับนักเรียน</div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label" for="enrollDate">วันที่มอบตัว <span class="required">*</span></label>
+            <input type="date" id="enrollDate" class="form-control" required>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label" for="enrollGuardianName">ชื่อผู้ปกครองที่มามอบตัว <span class="required">*</span></label>
+            <input type="text" id="enrollGuardianName" class="form-control" required placeholder="เช่น นายสมชาย ใจดี">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label" for="enrollGuardianPhone">เบอร์โทรศัพท์ติดต่อผู้ปกครอง <span class="required">*</span></label>
+            <input type="tel" id="enrollGuardianPhone" class="form-control" required pattern="0\d{9}">
+          </div>
+
+          <div class="modal-footer" style="padding-left: 0; padding-right: 0;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('modalEnrollmentForm')">ยกเลิก</button>
+            <button type="submit" class="btn btn-success">ยืนยันการมอบตัว</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/admin.js"></script>
+</body>
+</html>
