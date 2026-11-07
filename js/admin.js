@@ -1,6 +1,6 @@
 /**
  * ระบบบริหารจัดการงานรับสมัครเรียน (Admin Portal) - วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์
- * Back-end Integration, Authentication, Data Table, Enrollment, Chart.js Analytics & Export ศธ.02
+ * Back-end Integration, Authentication, Registry, Department Analytics & Individual PDF Export
  */
 
 const ADMIN_CONFIG = {
@@ -11,7 +11,6 @@ const ADMIN_CONFIG = {
   STORAGE_KEY_STAFF_SESSION: "TCAT_STAFF_SESSION"
 };
 
-// ข้อมูลเจ้าหน้าที่เริ่มต้น (สำหรับการทดสอบหรือโหมด Standalone)
 const DEFAULT_STAFF = [
   { username: "admin", password: "admin1234", name: "นายผู้ดูแลระบบ ท่าหลวง", role: "ผู้ดูแลระบบ" },
   { username: "registrar", password: "reg1234", name: "นางสาวสมร ทะเบียนวิชาการ", role: "เจ้าหน้าที่ทะเบียน" }
@@ -20,6 +19,28 @@ const DEFAULT_STAFF = [
 let currentStaff = null;
 let allApplicants = [];
 let chartInstances = {};
+
+// แผนกวิชาหลักของวิทยาลัย และการจับคู่สาขาวิชา
+const DEPARTMENTS = {
+  INDUSTRY: {
+    name: "แผนกวิชาช่างอุตสาหกรรม",
+    color: "#1e3a5f",
+    quota: 180,
+    keywords: ["ช่างยนต์", "เครื่องกล", "ช่างกล", "การผลิต", "เชื่อม", "ไฟฟ้า", "อิเล็กทรอนิกส์"]
+  },
+  IT: {
+    name: "แผนกเทคโนโลยีคอมพิวเตอร์",
+    color: "#4f46e5",
+    quota: 80,
+    keywords: ["คอมพิวเตอร์", "ไอที", "ซอฟต์แวร์"]
+  },
+  COMMERCE: {
+    name: "แผนกพาณิชยกรรมและบริหารธุรกิจ",
+    color: "#059669",
+    quota: 100,
+    keywords: ["บัญชี", "การตลาด", "โลจิสติกส์"]
+  }
+};
 
 // ============================================================================
 // Initialization & Authentication
@@ -60,7 +81,6 @@ function showAdminInterface() {
   document.getElementById("currentStaffRole").textContent = `ตำแหน่ง: ${currentStaff.role}`;
   document.getElementById("staffStatusBadge").textContent = `เข้าสู่ระบบในชื่อ: ${currentStaff.name} (${currentStaff.role})`;
 
-  // ซ่อนเมนูตั้งค่าหากเป็นเจ้าหน้าที่ทะเบียน (ให้เฉพาะผู้ดูแลระบบ)
   const settingsNav = document.getElementById("adminSettingsNavItem");
   if (currentStaff.role !== "ผู้ดูแลระบบ") {
     if (settingsNav) settingsNav.style.display = "none";
@@ -135,7 +155,7 @@ async function loadAllData() {
     try {
       const res = await fetch(`${ADMIN_CONFIG.GAS_API_URL}?action=getApplicants`);
       const data = await res.json();
-      if (data && data.success && data.applicants) {
+      if (data && data.success && data.applicants && data.applicants.length > 0) {
         list = data.applicants;
       }
     } catch (e) {
@@ -150,7 +170,6 @@ async function loadAllData() {
     }
   }
 
-  // หากไม่มีข้อมูลในระบบเลย ให้สร้างข้อมูลตัวอย่าง (Mock Data) สำหรับการแสดงผลที่สมบูรณ์
   if (list.length === 0) {
     list = generateSampleApplicants();
     localStorage.setItem(ADMIN_CONFIG.STORAGE_KEY_APPLICANTS, JSON.stringify(list));
@@ -161,9 +180,6 @@ async function loadAllData() {
   loadSettingsForm();
 }
 
-/**
- * สร้างข้อมูลตัวอย่างเพื่อให้พร้อมทดสอบระบบทันที
- */
 function generateSampleApplicants() {
   return [
     {
@@ -344,7 +360,10 @@ function renderApplicantsTable(data) {
         <td style="font-size: 12px; color: var(--text-muted);">${app.createdDate ? app.createdDate.split(" ")[0] : "-"}</td>
         <td style="text-align: center;"><span class="status-badge ${badgeClass}">${app.status || "รอตรวจสอบ"}</span></td>
         <td style="text-align: center;">
-          <button class="btn btn-secondary btn-sm" onclick="openApplicantDetailModal('${app.applicationId}')">ดูรายละเอียด</button>
+          <div style="display: flex; gap: 4px; justify-content: center;">
+            <button class="btn btn-secondary btn-sm" onclick="openApplicantDetailModal('${app.applicationId}')" title="ดูข้อมูล">ตรวจ</button>
+            <button class="btn btn-pdf btn-sm" onclick="downloadApplicationPdfFromAdmin('${app.applicationId}')" title="ดาวน์โหลด PDF ใบสมัคร">📄 PDF</button>
+          </div>
         </td>
       </tr>
     `;
@@ -403,7 +422,6 @@ function openApplicantDetailModal(applicationId) {
     majorText = `อันดับที่ 1: <strong>${app.branches ? app.branches.majorPwc1 : "-"}</strong> | อันดับที่ 2: <strong>${app.branches ? app.branches.majorPwc2 : "-"}</strong>`;
   }
 
-  // สร้างลิงก์/พรีวิวเอกสาร
   const files = app.files || {};
   let filesHtml = "";
   
@@ -411,7 +429,6 @@ function openApplicantDetailModal(applicationId) {
     if (!fileObj || !fileObj.data) {
       return `<div><strong>${label}:</strong> <span style="color: var(--text-muted);">ไม่มีเอกสารแนบ</span></div>`;
     }
-    const isImg = fileObj.type && fileObj.type.startsWith("image/");
     return `
       <div style="margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 4px;">
         <span><strong>${label}:</strong> ${fileObj.name || "ไฟล์เอกสาร"}</span>
@@ -429,7 +446,6 @@ function openApplicantDetailModal(applicationId) {
 
   const body = document.getElementById("modalDetailBody");
   body.innerHTML = `
-    <!-- หัวข้อข้อมูลส่วนตัว -->
     <div class="form-section">
       <div class="section-legend"><span>ข้อมูลผู้สมัครและระดับการศึกษา</span></div>
       <div class="form-grid">
@@ -442,7 +458,6 @@ function openApplicantDetailModal(applicationId) {
       </div>
     </div>
 
-    <!-- ข้อมูลครอบครัวและที่อยู่ -->
     <div class="form-section">
       <div class="section-legend"><span>ข้อมูลครอบครัวและที่อยู่</span></div>
       <div class="form-grid">
@@ -452,7 +467,6 @@ function openApplicantDetailModal(applicationId) {
       </div>
     </div>
 
-    <!-- ข้อมูลสถานศึกษาเดิม -->
     <div class="form-section">
       <div class="section-legend"><span>ข้อมูลสถานศึกษาเดิม</span></div>
       <div class="form-grid">
@@ -463,13 +477,11 @@ function openApplicantDetailModal(applicationId) {
       </div>
     </div>
 
-    <!-- ไฟล์เอกสารแนบ -->
     <div class="form-section" style="background-color: #fbfcfd;">
       <div class="section-legend"><span>เอกสารหลักฐานที่แนบมาในระบบ</span></div>
       ${filesHtml}
     </div>
 
-    <!-- ส่วนพิจารณาเปลี่ยนสถานะ -->
     <div class="form-section" style="border: 2px solid var(--primary-navy); background-color: #f8fafc;">
       <div class="section-legend"><span>การพิจารณาตรวจสอบคุณสมบัติและเปลี่ยนสถานะ</span></div>
       <div class="form-grid">
@@ -512,7 +524,6 @@ async function submitStatusUpdate() {
   const studentId = document.getElementById("modalStudentId").value.trim();
   const oldStatus = currentViewingApp.status;
 
-  // บันทึก Audit Log
   const logEntry = {
     timestamp: new Date().toLocaleString("th-TH"),
     staffUsername: currentStaff ? currentStaff.username : "system",
@@ -523,14 +534,12 @@ async function submitStatusUpdate() {
   };
   saveAuditLog(logEntry);
 
-  // อัปเดตข้อมูลใน Memory & Local Storage
   currentViewingApp.status = newStatus;
   currentViewingApp.remarks = newRemarks;
   if (studentId) currentViewingApp.studentId = studentId;
 
   localStorage.setItem(ADMIN_CONFIG.STORAGE_KEY_APPLICANTS, JSON.stringify(allApplicants));
 
-  // ส่งบันทึกออนไลน์ไปยัง Apps Script (ถ้ามี)
   if (ADMIN_CONFIG.GAS_API_URL) {
     try {
       await fetch(ADMIN_CONFIG.GAS_API_URL, {
@@ -556,12 +565,189 @@ async function submitStatusUpdate() {
 }
 
 // ============================================================================
+// PDF Application Generation (Admin Side)
+// ============================================================================
+
+function toThaiNumerals(str) {
+  if (str === undefined || str === null) return "";
+  const thaiDigits = ["๐", "๑", "๒", "๓", "๔", "๕", "๖", "๗", "๘", "๙"];
+  return str.toString().replace(/[0-9]/g, match => thaiDigits[parseInt(match, 10)]);
+}
+
+function buildA4ApplicationHtml(app) {
+  const thaiYear = toThaiNumerals(app.academicYear || "2570");
+  const thaiAppId = toThaiNumerals(app.applicationId || "Q70-0001");
+  const fullName = `${app.prefix || ""}${app.firstName || ""} ${app.lastName || ""}`;
+  
+  let majorText = "";
+  if (app.applyLevel && app.applyLevel.startsWith("ปวส.")) {
+    majorText = app.branches ? app.branches.majorPws : "-";
+  } else {
+    majorText = app.branches ? `อันดับ ๑: ${app.branches.majorPwc1 || "-"} / อันดับ ๒: ${app.branches.majorPwc2 || "-"}` : "-";
+  }
+
+  const photoSrc = (app.files && app.files.photo) ? app.files.photo.data : "assets/images/logo.png";
+
+  return `
+    <div class="a4-header">
+      <div class="a4-photo-box">
+        <img src="${photoSrc}" alt="รูปถ่าย 1 นิ้ว">
+      </div>
+      <div class="a4-title-block">
+        <img src="assets/images/logo.png" class="a4-logo" alt="ตราสัญลักษณ์">
+        <div class="a4-title-main">วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์</div>
+        <div class="a4-title-sub">ใบสมัครเข้าศึกษาต่อ ประเภทโควตาพิเศษ ประจำปีการศึกษา ${thaiYear}</div>
+        <div style="font-size: 10.5pt; margin-top: 2px;">สังกัดสำนักงานคณะกรรมการการอาชีวศึกษา กระทรวงศึกษาธิการ</div>
+        <div class="a4-app-id">เลขที่ใบสมัคร: ${thaiAppId}</div>
+      </div>
+    </div>
+
+    <div class="a4-section-title">ระดับการศึกษาและสาขาวิชาที่สมัคร</div>
+    <div class="a4-row">
+      <div class="a4-label">ระดับที่สมัคร:</div>
+      <div class="a4-value">${app.applyLevel || "-"}</div>
+      <div class="a4-label" style="margin-left: 18px;">สาขาวิชาที่เลือก:</div>
+      <div class="a4-value">${majorText}</div>
+    </div>
+
+    <div class="a4-section-title">ข้อ ๑. ข้อมูลผู้สมัคร</div>
+    <div class="a4-row">
+      <div class="a4-label">ชื่อ - นามสกุล:</div>
+      <div class="a4-value">${fullName}</div>
+      <div class="a4-label" style="margin-left: 14px;">เลขประจำตัวประชาชน:</div>
+      <div class="a4-value">${app.citizenId || "-"}</div>
+    </div>
+    <div class="a4-row">
+      <div class="a4-label">วัน/เดือน/ปีเกิด:</div>
+      <div class="a4-value">${app.birthDate || "-"}</div>
+      <div class="a4-label" style="margin-left: 14px;">โทรศัพท์:</div>
+      <div class="a4-value">${app.address ? app.address.phone : "-"}</div>
+    </div>
+
+    <div class="a4-section-title">ข้อ ๒ - ๓. ข้อมูลบิดา - มารดา</div>
+    <div class="a4-row">
+      <div class="a4-label">ชื่อบิดา:</div>
+      <div class="a4-value">${app.fatherName || "-"} (อายุ ${app.fatherAge || "-"} ปี)</div>
+      <div class="a4-label" style="margin-left: 14px;">อาชีพ:</div>
+      <div class="a4-value">${app.fatherJob || "-"}</div>
+    </div>
+    <div class="a4-row">
+      <div class="a4-label">ชื่อมารดา:</div>
+      <div class="a4-value">${app.motherName || "-"} (อายุ ${app.motherAge || "-"} ปี)</div>
+      <div class="a4-label" style="margin-left: 14px;">อาชีพ:</div>
+      <div class="a4-value">${app.motherJob || "-"}</div>
+    </div>
+
+    <div class="a4-section-title">ข้อ ๔. ที่อยู่ปัจจุบันที่ติดต่อได้</div>
+    <div class="a4-row">
+      <div class="a4-value">
+        บ้านเลขที่ ${app.address ? app.address.houseNo : "-"} หมู่ที่ ${app.address ? app.address.moo || "-" : "-"} 
+        ซอย ${app.address ? app.address.soi || "-" : "-"} ถนน ${app.address ? app.address.road || "-" : "-"} 
+        ตำบล/แขวง ${app.address ? app.address.subdistrict : "-"} อำเภอ/เขต ${app.address ? app.address.district : "-"} 
+        จังหวัด ${app.address ? app.address.province : "-"} รหัสไปรษณีย์ ${app.address ? app.address.zipcode : "-"}
+      </div>
+    </div>
+
+    <div class="a4-section-title">ข้อ ๕. ข้อมูลสถานศึกษาเดิม</div>
+    <div class="a4-row">
+      <div class="a4-label">สถานศึกษาเดิม:</div>
+      <div class="a4-value">${app.previousEducation ? app.previousEducation.schoolName : "-"} (${app.previousEducation ? app.previousEducation.level : "-"})</div>
+      <div class="a4-label" style="margin-left: 14px;">จังหวัด:</div>
+      <div class="a4-value">${app.previousEducation ? app.previousEducation.province : "-"}</div>
+      <div class="a4-label" style="margin-left: 14px;">GPAX ๕ ภาคเรียน:</div>
+      <div class="a4-value"><strong>${app.previousEducation ? app.previousEducation.gpax : "-"}</strong></div>
+    </div>
+
+    <div class="a4-section-title">รายการตรวจสอบเอกสารหลักฐาน (สำหรับเจ้าหน้าที่ทะเบียน)</div>
+    <table class="a4-table-check">
+      <thead>
+        <tr>
+          <th style="width: 10%;">ผล</th>
+          <th style="width: 50%;">รายการเอกสารหลักฐาน</th>
+          <th style="width: 40%;">หมายเหตุ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="text-align: center;">[ / ]</td>
+          <td>๑. รูปถ่ายหน้าตรงขนาด ๑ นิ้ว</td>
+          <td>แนบในระบบแล้ว</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;">[ / ]</td>
+          <td>๒. เอกสารแสดงผลการเรียนเฉลี่ยสะสม ๕ ภาคเรียน (ปพ.๑ / รบ.)</td>
+          <td>GPAX: ${app.previousEducation ? app.previousEducation.gpax : "-"}</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;">[ / ]</td>
+          <td>๓. สำเนาบัตรประจำตัวประชาชน / สำเนาทะเบียนบ้าน</td>
+          <td>ตรวจสอบแล้ว</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;">[ ${app.files && app.files.cert ? '/' : ' '} ]</td>
+          <td>๔. สำเนาเกียรติบัตร / ใบรับรองความสามารถพิเศษ</td>
+          <td>${app.files && app.files.cert ? 'มีเอกสารแนบ' : 'ไม่มี'}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="a4-signatures">
+      <div class="a4-sig-block">
+        <p>ลงชื่อ..........................................................ผู้สมัคร</p>
+        <p>(${fullName})</p>
+        <p>วันที่ยื่นสมัคร: ${app.createdDate || "...../...../....."}</p>
+      </div>
+      <div class="a4-sig-block">
+        <p>ลงชื่อ..........................................................เจ้าหน้าที่รับสมัคร</p>
+        <p>(..........................................................)</p>
+        <p>วันที่ตรวจสอบ: ...../...../.....</p>
+      </div>
+    </div>
+  `;
+}
+
+function downloadApplicationPdfFromAdmin(targetAppId = null) {
+  let app = null;
+  if (targetAppId) {
+    app = allApplicants.find(a => a.applicationId === targetAppId);
+  } else if (currentViewingApp) {
+    app = currentViewingApp;
+  }
+
+  if (!app) {
+    alert("ไม่พบข้อมูลใบสมัครที่จะสร้างไฟล์ PDF");
+    return;
+  }
+
+  const container = document.getElementById("pdfA4Template");
+  container.innerHTML = buildA4ApplicationHtml(app);
+
+  const opt = {
+    margin: [8, 10, 8, 10],
+    filename: `ใบสมัคร_${app.applicationId}_${app.firstName}_${app.lastName}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  if (typeof html2pdf !== "undefined") {
+    html2pdf().set(opt).from(container).save().then(() => {
+      console.log("Admin downloaded PDF successfully");
+    }).catch(err => {
+      console.warn("PDF export err:", err);
+      window.print();
+    });
+  } else {
+    window.print();
+  }
+}
+
+// ============================================================================
 // Enrollment Module (ระบบรายงานตัวและมอบตัว)
 // ============================================================================
 
 function renderEnrollmentTable() {
   const tbody = document.getElementById("enrollmentTableBody");
-  // ผู้ที่มีสถานะ "ผ่านการคัดเลือก" หรือ "มอบตัวแล้ว"
   const candidates = allApplicants.filter(a => a.status === "ผ่านการคัดเลือก" || a.status === "มอบตัวแล้ว");
 
   if (candidates.length === 0) {
@@ -583,7 +769,7 @@ function renderEnrollmentTable() {
         <td><span class="status-badge ${isEnrolled ? 'status-enrolled' : 'status-approved'}">${app.status}</span></td>
         <td style="text-align: center;">
           ${isEnrolled ? 
-            `<button class="btn btn-secondary btn-sm" onclick="openEnrollmentModal('${app.applicationId}')">แก้ไขข้อมูลมอบตัว</button>` : 
+            `<button class="btn btn-secondary btn-sm" onclick="openEnrollmentModal('${app.applicationId}')">แก้ไขมอบตัว</button>` : 
             `<button class="btn btn-success btn-sm" onclick="openEnrollmentModal('${app.applicationId}')">บันทึกมอบตัว</button>`
           }
         </td>
@@ -602,7 +788,6 @@ function openEnrollmentModal(applicationId) {
   let major = app.applyLevel && app.applyLevel.startsWith("ปวส.") ? (app.branches ? app.branches.majorPws : "-") : (app.branches ? app.branches.majorPwc1 : "-");
   document.getElementById("enrollLevelMajor").textContent = `${app.applyLevel} - ${major}`;
 
-  // หากยังไม่มีรหัสนักเรียน ให้ Generate รหัสใหม่
   if (!app.studentId) {
     generateStudentId(app.applyLevel);
   } else {
@@ -616,10 +801,6 @@ function openEnrollmentModal(applicationId) {
   openModal("modalEnrollmentForm");
 }
 
-/**
- * Generate รหัสนักเรียน 11 หลัก เช่น 70201010001
- * 70 (ปีการศึกษา 2570) + 20101 (รหัสสาขาวิชา) + 0001 (ลำดับ)
- */
 function generateStudentId(level) {
   const prefix = "70";
   const randomBranchCode = "20101";
@@ -666,11 +847,23 @@ function submitEnrollment(e) {
 }
 
 // ============================================================================
-// Dashboard & Analytics (Chart.js Clean Tone-on-Tone Blue)
+// Modern Dashboard & Department/Branch Analytics
 // ============================================================================
 
+function categorizeMajorToDepartment(majorName) {
+  if (!majorName) return DEPARTMENTS.INDUSTRY.name;
+  for (let key in DEPARTMENTS) {
+    const dept = DEPARTMENTS[key];
+    for (let kw of dept.keywords) {
+      if (majorName.includes(kw)) {
+        return dept.name;
+      }
+    }
+  }
+  return DEPARTMENTS.INDUSTRY.name;
+}
+
 function renderDashboardCharts() {
-  // 1. KPI Counters
   const total = allApplicants.length;
   const pending = allApplicants.filter(a => a.status === "รอตรวจสอบ").length;
   const fix = allApplicants.filter(a => a.status === "เอกสารไม่ครบ (แก้ไข)").length;
@@ -683,12 +876,13 @@ function renderDashboardCharts() {
   document.getElementById("statApproved").textContent = approved;
   document.getElementById("statEnrolled").textContent = enrolled;
 
-  // 2. สรุปข้อมูลสำหรับกราฟ
-  // Level Count
-  let pwcCount = allApplicants.filter(a => a.applyLevel === "ปวช.").length;
-  let pwsCount = allApplicants.filter(a => a.applyLevel && a.applyLevel.startsWith("ปวส.")).length;
+  // 1. Department Breakdown
+  const deptCounts = {
+    [DEPARTMENTS.INDUSTRY.name]: 0,
+    [DEPARTMENTS.IT.name]: 0,
+    [DEPARTMENTS.COMMERCE.name]: 0
+  };
 
-  // Major Count
   const majorCounts = {};
   allApplicants.forEach(a => {
     let m = "-";
@@ -699,24 +893,36 @@ function renderDashboardCharts() {
     }
     if (m && m !== "-") {
       majorCounts[m] = (majorCounts[m] || 0) + 1;
+      const dept = categorizeMajorToDepartment(m);
+      deptCounts[dept] = (deptCounts[dept] || 0) + 1;
     }
   });
 
-  // Top Schools
-  const schoolCounts = {};
-  allApplicants.forEach(a => {
-    const s = a.previousEducation ? a.previousEducation.schoolName : "ไม่ระบุ";
-    if (s) schoolCounts[s] = (schoolCounts[s] || 0) + 1;
-  });
+  // 2. Render Quota Progress Bars
+  const quotaContainer = document.getElementById("quotaProgressContainer");
+  if (quotaContainer) {
+    quotaContainer.innerHTML = Object.keys(DEPARTMENTS).map(key => {
+      const dept = DEPARTMENTS[key];
+      const count = deptCounts[dept.name] || 0;
+      const pct = Math.min(Math.round((count / dept.quota) * 100), 100);
+      let fillClass = "fill-industry";
+      if (key === "COMMERCE") fillClass = "fill-commerce";
+      else if (key === "IT") fillClass = "fill-it";
 
-  // Province Counts
-  const provCounts = {};
-  allApplicants.forEach(a => {
-    const p = (a.address && a.address.province) || "สระบุรี";
-    provCounts[p] = (provCounts[p] || 0) + 1;
-  });
+      return `
+        <div class="quota-row">
+          <div class="quota-meta">
+            <div><strong>${dept.name}</strong> <span style="color: var(--text-muted); font-size: 12px;">(เป้าหมายโควตา: ${dept.quota} คน)</span></div>
+            <div><strong>${count}</strong> / ${dept.quota} คน (${pct}%)</div>
+          </div>
+          <div class="quota-bar-track">
+            <div class="quota-bar-fill ${fillClass}" style="width: ${pct}%;"></div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
 
-  // Helper สำหรับทำลายกราฟเดิมก่อน Render ใหม่
   const safeRenderChart = (chartId, type, config) => {
     if (chartInstances[chartId]) chartInstances[chartId].destroy();
     const ctx = document.getElementById(chartId);
@@ -725,36 +931,41 @@ function renderDashboardCharts() {
     }
   };
 
-  // Tone-on-tone blue palette
-  const blueNavy = "#1e3a5f";
-  const blueMid = "#3b82f6";
-  const blueLight = "#93c5fd";
-  const blueSlate = "#64748b";
-
-  // Chart 1: Level
-  safeRenderChart("chartLevel", "bar", {
+  // Chart 1: Department Doughnut
+  safeRenderChart("chartDepartment", "doughnut", {
     data: {
-      labels: ["ระดับ ปวช.", "ระดับ ปวส."],
+      labels: Object.keys(deptCounts),
       datasets: [{
-        label: "จำนวนผู้สมัคร (คน)",
-        data: [pwcCount, pwsCount],
-        backgroundColor: [blueNavy, blueMid],
-        borderRadius: 4
+        data: Object.values(deptCounts),
+        backgroundColor: [DEPARTMENTS.INDUSTRY.color, DEPARTMENTS.IT.color, DEPARTMENTS.COMMERCE.color],
+        borderWidth: 2
       }]
     },
-    options: { responsive: true, plugins: { legend: { display: false } } }
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "bottom" }
+      }
+    }
   });
 
-  // Chart 2: Major
+  // Chart 2: Major Horizontal Bars
   const majorLabels = Object.keys(majorCounts);
   const majorValues = Object.values(majorCounts);
+  const majorColors = majorLabels.map(m => {
+    const d = categorizeMajorToDepartment(m);
+    if (d === DEPARTMENTS.IT.name) return DEPARTMENTS.IT.color;
+    if (d === DEPARTMENTS.COMMERCE.name) return DEPARTMENTS.COMMERCE.color;
+    return DEPARTMENTS.INDUSTRY.color;
+  });
+
   safeRenderChart("chartMajor", "bar", {
     data: {
       labels: majorLabels.length ? majorLabels : ["ยังไม่มีข้อมูล"],
       datasets: [{
-        label: "จำนวนคน",
+        label: "ผู้สมัคร (คน)",
         data: majorValues.length ? majorValues : [0],
-        backgroundColor: blueNavy,
+        backgroundColor: majorColors.length ? majorColors : ["#1e3a5f"],
         borderRadius: 4
       }]
     },
@@ -765,7 +976,26 @@ function renderDashboardCharts() {
     }
   });
 
-  // Chart 3: School
+  // Chart 3: Level Pie
+  let pwcCount = allApplicants.filter(a => a.applyLevel === "ปวช.").length;
+  let pwsCount = allApplicants.filter(a => a.applyLevel && a.applyLevel.startsWith("ปวส.")).length;
+  safeRenderChart("chartLevel", "pie", {
+    data: {
+      labels: ["ระดับ ปวช.", "ระดับ ปวส."],
+      datasets: [{
+        data: [pwcCount, pwsCount],
+        backgroundColor: ["#1e3a5f", "#3b82f6"]
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+  });
+
+  // Feeder Schools
+  const schoolCounts = {};
+  allApplicants.forEach(a => {
+    const s = a.previousEducation ? a.previousEducation.schoolName : "ไม่ระบุ";
+    if (s) schoolCounts[s] = (schoolCounts[s] || 0) + 1;
+  });
   const schoolLabels = Object.keys(schoolCounts).slice(0, 5);
   const schoolValues = schoolLabels.map(k => schoolCounts[k]);
   safeRenderChart("chartSchool", "bar", {
@@ -774,17 +1004,19 @@ function renderDashboardCharts() {
       datasets: [{
         label: "ผู้สมัคร",
         data: schoolValues.length ? schoolValues : [0],
-        backgroundColor: blueSlate,
+        backgroundColor: "#64748b",
         borderRadius: 4
       }]
     },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } }
-    }
+    options: { responsive: true, plugins: { legend: { display: false } } }
   });
 
-  // Chart 4: Province
+  // Province
+  const provCounts = {};
+  allApplicants.forEach(a => {
+    const p = (a.address && a.address.province) || "สระบุรี";
+    provCounts[p] = (provCounts[p] || 0) + 1;
+  });
   const provLabels = Object.keys(provCounts);
   const provValues = Object.values(provCounts);
   safeRenderChart("chartProvince", "doughnut", {
@@ -792,10 +1024,10 @@ function renderDashboardCharts() {
       labels: provLabels.length ? provLabels : ["ยังไม่มีข้อมูล"],
       datasets: [{
         data: provValues.length ? provValues : [1],
-        backgroundColor: [blueNavy, blueMid, blueLight, "#0284c7", "#38bdf8"]
+        backgroundColor: ["#1e3a5f", "#2563eb", "#38bdf8", "#0284c7", "#94a3b8"]
       }]
     },
-    options: { responsive: true }
+    options: { responsive: true, plugins: { legend: { position: "bottom" } } }
   });
 }
 
@@ -809,7 +1041,6 @@ function exportApplicantsData(format) {
     return;
   }
 
-  // กำหนด Header คอลัมน์ตามมาตรฐานงานทะเบียน ศธ.02
   const headers = [
     "เลขที่ใบสมัคร",
     "รหัสนักเรียน",
@@ -838,7 +1069,7 @@ function exportApplicantsData(format) {
     return [
       a.applicationId || "",
       a.studentId || "-",
-      `'${a.citizenId}'`, // ใส่ quote ป้องกัน Excel ตัด 0 นำหน้า
+      `'${a.citizenId}'`,
       a.prefix || "",
       a.firstName || "",
       a.lastName || "",
@@ -858,7 +1089,6 @@ function exportApplicantsData(format) {
   });
 
   if (format === "csv") {
-    // UTF-8 BOM (\uFEFF) เพื่อให้ Excel ภาษาไทยเปิดแล้วสระไม่เพี้ยน
     let csvContent = "\uFEFF" + headers.join(",") + "\n";
     rows.forEach(r => {
       csvContent += r.map(col => `"${col.toString().replace(/"/g, '""')}"`).join(",") + "\n";
@@ -912,7 +1142,6 @@ function loadSettingsForm() {
     document.getElementById("settingBranchesPWS").value = s.branchesPWS ? s.branchesPWS.join("\n") : "";
     document.getElementById("settingLineToken").value = s.lineToken || "";
   } else {
-    // Default initial branches
     document.getElementById("settingBranchesPWC").value = [
       "สาขาวิชาช่างยนต์",
       "สาขาวิชาช่างกลโรงงาน",
@@ -982,10 +1211,6 @@ async function handleSaveSettings(e) {
   alert("บันทึกการตั้งค่าระบบเรียบร้อยแล้ว การเปลี่ยนแปลงจะมีผลต่อหน้าเว็บรับสมัครทันที");
 }
 
-// ============================================================================
-// Audit Logs
-// ============================================================================
-
 function saveAuditLog(entry) {
   const raw = localStorage.getItem(ADMIN_CONFIG.STORAGE_KEY_AUDIT);
   let logs = [];
@@ -1020,7 +1245,6 @@ function renderAuditLogs() {
   `).join("");
 }
 
-// Modal Utility Helper
 function openModal(modalId) {
   const m = document.getElementById(modalId);
   if (m) m.classList.add("is-active");

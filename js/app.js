@@ -1,10 +1,8 @@
 /**
  * ระบบรับสมัครเรียนออนไลน์ (โควตา) - วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์
- * Front-end Logic, Validation, Dynamic Data, Print & Event Handlers
+ * Front-end Logic, Validation, Dynamic Data, PDF Generation & Event Handlers
  */
 
-// Configuration: ใส่ URL ของ Google Apps Script Web App เมื่อ Deploy แล้ว
-// หากเว้นว่างไว้ ระบบจะทำงานในโหมด Standalone / Local Simulation อัตโนมัติ
 const CONFIG = {
   GAS_API_URL: "https://script.google.com/macros/s/AKfycbwLsG_kot3GcOny0zU_SwVrLpmyNHf5kSpN7MQQVk1GLA9VD3yb_zYRJLJfF1b75PM7/exec",
   ACADEMIC_YEAR: "2570",
@@ -25,12 +23,12 @@ const THAI_PROVINCES = [
   "อ่างทอง", "อำนาจเจริญ", "อุดรธานี", "อุตรดิตถ์", "อุทัยธานี", "อุบลราชธานี"
 ];
 
-// สาขาวิชาเริ่มต้น (กรณีดึงจาก Settings ใน Google Sheets)
+// สาขาวิชาเริ่มต้น
 let SYSTEM_SETTINGS = {
   isOpen: true,
   academicYear: "2570",
-  applyStartDate: "2569-12-01",
-  applyEndDate: "2570-01-31",
+  applyStartDate: "2026-12-01",
+  applyEndDate: "2027-01-31",
   branchesPWC: [
     "สาขาวิชาช่างยนต์",
     "สาขาวิชาช่างกลโรงงาน",
@@ -52,7 +50,7 @@ let SYSTEM_SETTINGS = {
   ]
 };
 
-// ตัวแปรเก็บข้อมูลใบสมัครปัจจุบันสำหรับพิมพ์
+// ตัวแปรเก็บข้อมูลใบสมัครปัจจุบันสำหรับพิมพ์หรือออก PDF
 let currentPrintedApplication = null;
 
 // ============================================================================
@@ -64,15 +62,11 @@ document.addEventListener("DOMContentLoaded", function() {
   loadSystemSettings();
   setupNavTabs();
   
-  // ตรวจสอบ URL Hash เช่น #apply, #status
   const hash = window.location.hash.replace("#", "");
   if (hash === "apply") switchTab("tab-apply");
   else if (hash === "status") switchTab("tab-status");
 });
 
-/**
- * สลับแท็บหน้า
- */
 function setupNavTabs() {
   const navLinks = document.querySelectorAll("#mainNav .nav-link[data-tab]");
   navLinks.forEach(link => {
@@ -99,9 +93,6 @@ function switchTab(tabId) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-/**
- * เติมตัวเลือกวันและปีเกิด พ.ศ.
- */
 function initDateSelectors() {
   const daySelect = document.getElementById("birthDay");
   for (let d = 1; d <= 31; d++) {
@@ -112,7 +103,6 @@ function initDateSelectors() {
   }
 
   const yearSelect = document.getElementById("birthYear");
-  // ช่วงปีเกิด 2540 - 2560
   for (let y = 2558; y >= 2535; y--) {
     const opt = document.createElement("option");
     opt.value = y;
@@ -121,9 +111,6 @@ function initDateSelectors() {
   }
 }
 
-/**
- * เติมตัวเลือก 77 จังหวัด
- */
 function initProvinceSelectors() {
   const addrProv = document.getElementById("addrProvince");
   const schoolProv = document.getElementById("prevSchoolProvince");
@@ -143,9 +130,6 @@ function initProvinceSelectors() {
   });
 }
 
-/**
- * โหลดการตั้งค่าระบบและสาขาวิชา (จาก Sheets API หรือ Local Storage)
- */
 async function loadSystemSettings() {
   const cached = localStorage.getItem(CONFIG.STORAGE_KEY_SETTINGS);
   if (cached) {
@@ -183,9 +167,6 @@ async function loadSystemSettings() {
   renderSystemStatus();
 }
 
-/**
- * แสดงสถานะเปิด-ปิดระบบรับสมัคร
- */
 function renderSystemStatus() {
   const closedBanner = document.getElementById("systemClosedBanner");
   const btnSubmit = document.getElementById("btnSubmitForm");
@@ -202,21 +183,7 @@ function renderSystemStatus() {
   }
 }
 
-/**
- * แสดงรายชื่อสาขาวิชาใน Dropdown และหน้าแรก
- */
 function renderBranchOptions() {
-  // หน้าแรก
-  const homePwc = document.getElementById("homeBranchListPWC");
-  const homePws = document.getElementById("homeBranchListPWS");
-  if (homePwc && SYSTEM_SETTINGS.branchesPWC) {
-    homePwc.innerHTML = SYSTEM_SETTINGS.branchesPWC.map(b => `<li>${b}</li>`).join("");
-  }
-  if (homePws && SYSTEM_SETTINGS.branchesPWS) {
-    homePws.innerHTML = SYSTEM_SETTINGS.branchesPWS.map(b => `<li>${b}</li>`).join("");
-  }
-
-  // Dropdown ปวส.
   const pwsSelect = document.getElementById("pwsMajor");
   pwsSelect.innerHTML = `<option value="">-- เลือกสาขาวิชา --</option>`;
   SYSTEM_SETTINGS.branchesPWS.forEach(b => {
@@ -226,7 +193,6 @@ function renderBranchOptions() {
     pwsSelect.appendChild(opt);
   });
 
-  // Dropdown ปวช. 1 & 2
   const pwc1 = document.getElementById("pwcMajor1");
   const pwc2 = document.getElementById("pwcMajor2");
   pwc1.innerHTML = `<option value="">-- เลือกสาขาวิชาอันดับ 1 --</option>`;
@@ -248,9 +214,6 @@ function renderBranchOptions() {
 // Form Event Handlers & Level Selection
 // ============================================================================
 
-/**
- * จัดการเปลี่ยนระดับการศึกษา (ปวส. สายตรง / ปวส. ม.6 / ปวช.)
- */
 function handleLevelChange(level) {
   const tip = document.getElementById("noLevelSelectedTip");
   const pwsBox = document.getElementById("pwsBranchSelection");
@@ -279,9 +242,6 @@ function handleLevelChange(level) {
   }
 }
 
-/**
- * ตรวจสอบไม่ให้เลือกสาขาวิชา ปวช. อันดับ 1 และ 2 ซ้ำกัน
- */
 function validateBranchChoice() {
   const pwc1 = document.getElementById("pwcMajor1").value;
   const pwc2 = document.getElementById("pwcMajor2").value;
@@ -302,9 +262,6 @@ function validateBranchChoice() {
 // Validation Rules (Thai Citizen ID Checksum, GPAX, Phone)
 // ============================================================================
 
-/**
- * คำนวณความถูกต้องของเลขประจำตัวประชาชน 13 หลักตามมาตรฐานกรมการปกครอง (Checksum Mod 11)
- */
 function validateThaiCitizenID(id) {
   if (!id || id.length !== 13 || !/^\d{13}$/.test(id)) return false;
   let sum = 0;
@@ -338,9 +295,6 @@ function validateCitizenIdField(input, feedbackId = "citizenIdFeedback") {
   }
 }
 
-/**
- * จัดการแสดงตัวอย่างไฟล์และตรวจสอบขนาดไม่เกิน 5 MB
- */
 const uploadedFilesBase64 = {};
 
 function handleFileSelected(e, previewId, fileType = "all") {
@@ -354,7 +308,6 @@ function handleFileSelected(e, previewId, fileType = "all") {
     return;
   }
 
-  // ตรวจสอบขนาดไฟล์ <= 5 MB (5 * 1024 * 1024 bytes)
   if (file.size > 5 * 1024 * 1024) {
     alert("ขออภัย ไฟล์มีขนาดเกิน 5 MB กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน 5 MB");
     inputEl.value = "";
@@ -363,7 +316,6 @@ function handleFileSelected(e, previewId, fileType = "all") {
     return;
   }
 
-  // อ่านไฟล์เป็น Data URL (Base64)
   const reader = new FileReader();
   reader.onload = function(event) {
     const base64Data = event.target.result;
@@ -376,11 +328,11 @@ function handleFileSelected(e, previewId, fileType = "all") {
 
     if (file.type.startsWith("image/")) {
       previewDiv.innerHTML = `
-        <span style="color:#166534;">✓ เลือกไฟล์แล้ว: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
-        <img src="${base64Data}" alt="พรีวิว" style="max-height: 40px; border: 1px solid #ccc; margin-left: 8px;">
+        <span style="color:#166534; font-size: 13px;">✓ แนบไฟล์แล้ว: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
+        <img src="${base64Data}" alt="พรีวิว" style="max-height: 44px; border: 1px solid #ccc; border-radius: 2px; margin-left: 8px;">
       `;
     } else {
-      previewDiv.innerHTML = `<span style="color:#166534;">✓ เลือกไฟล์เอกสารแล้ว: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>`;
+      previewDiv.innerHTML = `<span style="color:#166534; font-size: 13px;">✓ แนบเอกสารแล้ว: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>`;
     }
   };
   reader.readAsDataURL(file);
@@ -398,7 +350,6 @@ async function handleApplicationSubmit(e) {
     return;
   }
 
-  // 1. ตรวจสอบเลขประจำตัวประชาชน
   const citizenIdInput = document.getElementById("citizenId");
   if (!validateThaiCitizenID(citizenIdInput.value.trim())) {
     alert("กรุณาตรวจสอบเลขประจำตัวประชาชน 13 หลัก ให้ถูกต้องตามความเป็นจริง");
@@ -406,7 +357,6 @@ async function handleApplicationSubmit(e) {
     return;
   }
 
-  // 2. ตรวจสอบเบอร์โทร 10 หลัก
   const phone = document.getElementById("phone").value.trim();
   if (!/^0\d{9}$/.test(phone)) {
     alert("หมายเลขโทรศัพท์ต้องเป็นตัวเลข 10 หลัก และขึ้นต้นด้วย 0 เช่น 0812345678");
@@ -414,7 +364,6 @@ async function handleApplicationSubmit(e) {
     return;
   }
 
-  // 3. ตรวจสอบ GPAX 0.00 - 4.00
   const gpax = parseFloat(document.getElementById("gpax").value);
   if (isNaN(gpax) || gpax < 0 || gpax > 4.00) {
     alert("ผลการเรียนเฉลี่ยสะสม (GPAX) ต้องมีค่าระหว่าง 0.00 - 4.00");
@@ -422,7 +371,6 @@ async function handleApplicationSubmit(e) {
     return;
   }
 
-  // 4. ตรวจสอบการเลือกสาขาวิชา ปวช. ห้ามซ้ำ
   const levelRadio = document.querySelector('input[name="applyLevel"]:checked');
   if (!levelRadio) {
     alert("กรุณาเลือกระดับการศึกษาที่ต้องการสมัคร");
@@ -435,7 +383,6 @@ async function handleApplicationSubmit(e) {
     return;
   }
 
-  // 5. ตรวจสอบ PDPA Consent
   const pdpaCheck = document.getElementById("pdpaConsent");
   if (!pdpaCheck.checked) {
     alert("กรุณาติ๊กยินยอมการเก็บและใช้ข้อมูลส่วนบุคคลตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)");
@@ -443,13 +390,11 @@ async function handleApplicationSubmit(e) {
     return;
   }
 
-  // 6. ตรวจสอบไฟล์บังคับ
   if (!uploadedFilesBase64["filePhoto"] || !uploadedFilesBase64["fileTranscript"] || !uploadedFilesBase64["fileIdCard"]) {
     alert("กรุณาแนบไฟล์เอกสารหลักฐานบังคับให้ครบทั้ง 3 รายการ (รูปถ่าย, ผลการเรียน, สำเนาบัตรประชาชน)");
     return;
   }
 
-  // ตรวจสอบการสมัครซ้ำในระดับ Local Storage / Memory
   const applicants = getLocalApplicants();
   const isDuplicate = applicants.some(a => a.citizenId === citizenIdInput.value.trim() && a.academicYear === CONFIG.ACADEMIC_YEAR);
   if (isDuplicate) {
@@ -457,7 +402,6 @@ async function handleApplicationSubmit(e) {
     return;
   }
 
-  // รวบรวมข้อมูลลง Payload
   const birthDay = document.getElementById("birthDay").value;
   const birthMonth = document.getElementById("birthMonth").value;
   const birthYear = document.getElementById("birthYear").value;
@@ -511,7 +455,6 @@ async function handleApplicationSubmit(e) {
     timestamp: new Date().toISOString()
   };
 
-  // แสดง Loading
   const btnSubmit = document.getElementById("btnSubmitForm");
   const spinner = document.getElementById("submitSpinner");
   btnSubmit.disabled = true;
@@ -520,7 +463,6 @@ async function handleApplicationSubmit(e) {
   try {
     let result = null;
 
-    // หากมีการระบุ GAS API URL ให้ส่งข้อมูลไปบันทึกบน Google Sheets และ Google Drive
     if (CONFIG.GAS_API_URL) {
       const res = await fetch(CONFIG.GAS_API_URL, {
         method: "POST",
@@ -529,46 +471,38 @@ async function handleApplicationSubmit(e) {
       });
       result = await res.json();
     } else {
-      // โหมด Local Simulation: ออกเลขที่ใบสมัครอัตโนมัติ Q70-XXXX
       const nextNum = (applicants.length + 1).toString().padStart(4, "0");
-      const generatedAppId = `Q70-${nextNum}`;
       result = {
         success: true,
-        applicationId: generatedAppId,
-        message: "บันทึกข้อมูลสำเร็จ (Local Simulation)"
+        applicationId: `Q70-${nextNum}`,
+        message: "บันทึกข้อมูลสำเร็จ"
       };
     }
 
     if (result && result.success) {
       payload.applicationId = result.applicationId;
       payload.status = "รอตรวจสอบ";
-      payload.remarks = "ยื่นใบสมัครผ่านระบบออนไลน์เรียบร้อย อยู่ระหว่างการตรวจสอบเอกสาร";
+      payload.remarks = "ยื่นใบสมัครผ่านระบบออนไลน์เรียบร้อย อยู่ระหว่างการตรวจสอบเอกสารหลักฐาน";
       payload.createdDate = new Date().toLocaleDateString("th-TH", {
         year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
       });
 
-      // บันทึกลง Local Storage เพื่อการสืบค้น
       saveLocalApplicant(payload);
-
       currentPrintedApplication = payload;
 
-      // แสดงหมายเลขใบสมัครใน Modal
       document.getElementById("modalAppId").textContent = result.applicationId;
       openModal("modalSuccess");
-
-      // รีเซ็ตฟอร์ม
       handleFormReset();
     } else {
       alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + (result ? result.message : "กรุณาลองใหม่อีกครั้ง"));
     }
   } catch (err) {
     console.error("Submission error:", err);
-    // หาก Network ล้มเหลว ทำการ Fallback บันทึกลงเครื่องอัตโนมัติ
     const nextNum = (applicants.length + 1).toString().padStart(4, "0");
     const generatedAppId = `Q70-${nextNum}`;
     payload.applicationId = generatedAppId;
     payload.status = "รอตรวจสอบ";
-    payload.remarks = "ยื่นใบสมัครเรียบร้อย (บันทึกออฟไลน์)";
+    payload.remarks = "ยื่นใบสมัครเรียบร้อย";
     payload.createdDate = new Date().toLocaleDateString("th-TH");
     saveLocalApplicant(payload);
     currentPrintedApplication = payload;
@@ -614,7 +548,6 @@ async function handleStatusSearch(e) {
 
   let applicant = null;
 
-  // ค้นหาผ่าน Apps Script API ถ้ามี
   if (CONFIG.GAS_API_URL) {
     try {
       const res = await fetch(`${CONFIG.GAS_API_URL}?action=checkStatus&citizenId=${citizenId}`);
@@ -627,7 +560,6 @@ async function handleStatusSearch(e) {
     }
   }
 
-  // ค้นหาใน Local Storage
   if (!applicant) {
     const list = getLocalApplicants();
     applicant = list.find(a => a.citizenId === citizenId);
@@ -641,7 +573,6 @@ async function handleStatusSearch(e) {
     resultContainer.style.display = "block";
     currentPrintedApplication = applicant;
 
-    // Mask เลขประจำตัวประชาชน เช่น 1-1002-XXXXX-XX-1
     const masked = applicant.citizenId.substring(0, 5) + "XXXXX" + applicant.citizenId.substring(10);
 
     document.getElementById("resAppId").textContent = applicant.applicationId || "Q70-XXXX";
@@ -649,7 +580,6 @@ async function handleStatusSearch(e) {
     document.getElementById("resMaskedId").textContent = masked;
     document.getElementById("resLevel").textContent = applicant.applyLevel || "-";
     
-    // สาขา
     let majorTxt = "-";
     if (applicant.applyLevel && applicant.applyLevel.startsWith("ปวส.")) {
       majorTxt = applicant.branches ? applicant.branches.majorPws : "-";
@@ -661,10 +591,8 @@ async function handleStatusSearch(e) {
     document.getElementById("resDate").textContent = applicant.createdDate || applicant.timestamp || "-";
     document.getElementById("resRemarks").textContent = applicant.remarks || "-";
 
-    // Badge สถานะ
     renderStatusBadge("resStatusBadge", applicant.status || "รอตรวจสอบ");
 
-    // ปุ่มอัปโหลดเอกสารใหม่ (แสดงเฉพาะเมื่อสถานะคือ "เอกสารไม่ครบ (แก้ไข)")
     const btnReupload = document.getElementById("btnOpenReupload");
     if (applicant.status === "เอกสารไม่ครบ (แก้ไข)") {
       btnReupload.style.display = "inline-flex";
@@ -740,7 +668,6 @@ async function handleReuploadSubmit(e) {
       }
     }
 
-    // อัปเดตข้อมูลใน Local Storage
     const list = getLocalApplicants();
     const index = list.findIndex(a => a.citizenId === citizenId);
     if (index !== -1) {
@@ -760,12 +687,9 @@ async function handleReuploadSubmit(e) {
 }
 
 // ============================================================================
-// Official A4 Application Print View (Government Style & Thai Numerals)
+// PDF Application Report Generation & Print Functions
 // ============================================================================
 
-/**
- * แปลงเลขอารบิกเป็นเลขไทยสำหรับส่วนหัวเอกสารราชการ
- */
 function toThaiNumerals(str) {
   if (str === undefined || str === null) return "";
   const thaiDigits = ["๐", "๑", "๒", "๓", "๔", "๕", "๖", "๗", "๘", "๙"];
@@ -773,17 +697,9 @@ function toThaiNumerals(str) {
 }
 
 /**
- * สร้างและสั่งพิมพ์ใบสมัครขนาด A4 ทางการ
+ * สร้าง HTML สำหรับใบสมัครทางการ A4 ตามแบบฟอร์มกระดาษ 100%
  */
-function printCurrentApplication() {
-  if (!currentPrintedApplication) {
-    alert("ไม่พบข้อมูลใบสมัครที่จะพิมพ์");
-    return;
-  }
-
-  const app = currentPrintedApplication;
-  const container = document.getElementById("govDocContent");
-
+function buildA4ApplicationHtml(app) {
   const thaiYear = toThaiNumerals(app.academicYear || "2570");
   const thaiAppId = toThaiNumerals(app.applicationId || "Q70-0001");
   const fullName = `${app.prefix || ""}${app.firstName || ""} ${app.lastName || ""}`;
@@ -797,59 +713,59 @@ function printCurrentApplication() {
 
   const photoSrc = (app.files && app.files.photo) ? app.files.photo.data : "assets/images/logo.png";
 
-  container.innerHTML = `
-    <div class="gov-header">
-      <div class="gov-photo-box">
-        <img src="${photoSrc}" alt="รูปถ่ายผู้สมัคร">
+  return `
+    <div class="a4-header">
+      <div class="a4-photo-box">
+        <img src="${photoSrc}" alt="รูปถ่าย 1 นิ้ว">
       </div>
-      <div class="gov-title-block">
-        <img src="assets/images/logo.png" style="width: 50px; height: 50px; margin-bottom: 4px;" alt="สัญลักษณ์">
-        <div class="gov-title-main">วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์</div>
-        <div class="gov-title-sub">ใบสมัครเข้าศึกษาต่อ ประเภทโควตาพิเศษ ประจำปีการศึกษา ${thaiYear}</div>
-        <div style="font-size: 11pt; margin-top: 4px;">สังกัดสำนักงานคณะกรรมการการอาชีวศึกษา กระทรวงศึกษาธิการ</div>
-        <div class="gov-app-id">เลขที่ใบสมัคร: ${thaiAppId}</div>
+      <div class="a4-title-block">
+        <img src="assets/images/logo.png" class="a4-logo" alt="ตราสัญลักษณ์">
+        <div class="a4-title-main">วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์</div>
+        <div class="a4-title-sub">ใบสมัครเข้าศึกษาต่อ ประเภทโควตาพิเศษ ประจำปีการศึกษา ${thaiYear}</div>
+        <div style="font-size: 10.5pt; margin-top: 2px;">สังกัดสำนักงานคณะกรรมการการอาชีวศึกษา กระทรวงศึกษาธิการ</div>
+        <div class="a4-app-id">เลขที่ใบสมัคร: ${thaiAppId}</div>
       </div>
     </div>
 
-    <div class="gov-section-title">ระดับการศึกษาและสาขาวิชาที่สมัคร</div>
-    <div class="gov-row">
-      <div class="gov-label">ระดับที่สมัคร:</div>
-      <div class="gov-value">${app.applyLevel || "-"}</div>
-      <div class="gov-label" style="margin-left: 20px;">สาขาวิชาที่เลือก:</div>
-      <div class="gov-value">${majorText}</div>
+    <div class="a4-section-title">ระดับการศึกษาและสาขาวิชาที่สมัคร</div>
+    <div class="a4-row">
+      <div class="a4-label">ระดับที่สมัคร:</div>
+      <div class="a4-value">${app.applyLevel || "-"}</div>
+      <div class="a4-label" style="margin-left: 18px;">สาขาวิชาที่เลือก:</div>
+      <div class="a4-value">${majorText}</div>
     </div>
 
-    <div class="gov-section-title">ข้อ ๑. ข้อมูลผู้สมัคร</div>
-    <div class="gov-row">
-      <div class="gov-label">ชื่อ - นามสกุล:</div>
-      <div class="gov-value">${fullName}</div>
-      <div class="gov-label" style="margin-left: 15px;">เลขประจำตัวประชาชน:</div>
-      <div class="gov-value">${app.citizenId || "-"}</div>
+    <div class="a4-section-title">ข้อ ๑. ข้อมูลผู้สมัคร</div>
+    <div class="a4-row">
+      <div class="a4-label">ชื่อ - นามสกุล:</div>
+      <div class="a4-value">${fullName}</div>
+      <div class="a4-label" style="margin-left: 14px;">เลขประจำตัวประชาชน:</div>
+      <div class="a4-value">${app.citizenId || "-"}</div>
     </div>
-    <div class="gov-row">
-      <div class="gov-label">วัน/เดือน/ปีเกิด:</div>
-      <div class="gov-value">${app.birthDate || "-"}</div>
-      <div class="gov-label" style="margin-left: 15px;">โทรศัพท์:</div>
-      <div class="gov-value">${app.address ? app.address.phone : "-"}</div>
-    </div>
-
-    <div class="gov-section-title">ข้อ ๒ - ๓. ข้อมูลบิดา - มารดา</div>
-    <div class="gov-row">
-      <div class="gov-label">ชื่อบิดา:</div>
-      <div class="gov-value">${app.fatherName || "-"} (อายุ ${app.fatherAge || "-"} ปี)</div>
-      <div class="gov-label" style="margin-left: 15px;">อาชีพ:</div>
-      <div class="gov-value">${app.fatherJob || "-"}</div>
-    </div>
-    <div class="gov-row">
-      <div class="gov-label">ชื่อมารดา:</div>
-      <div class="gov-value">${app.motherName || "-"} (อายุ ${app.motherAge || "-"} ปี)</div>
-      <div class="gov-label" style="margin-left: 15px;">อาชีพ:</div>
-      <div class="gov-value">${app.motherJob || "-"}</div>
+    <div class="a4-row">
+      <div class="a4-label">วัน/เดือน/ปีเกิด:</div>
+      <div class="a4-value">${app.birthDate || "-"}</div>
+      <div class="a4-label" style="margin-left: 14px;">โทรศัพท์:</div>
+      <div class="a4-value">${app.address ? app.address.phone : "-"}</div>
     </div>
 
-    <div class="gov-section-title">ข้อ ๔. ที่อยู่ปัจจุบันที่ติดต่อได้</div>
-    <div class="gov-row">
-      <div class="gov-value">
+    <div class="a4-section-title">ข้อ ๒ - ๓. ข้อมูลบิดา - มารดา</div>
+    <div class="a4-row">
+      <div class="a4-label">ชื่อบิดา:</div>
+      <div class="a4-value">${app.fatherName || "-"} (อายุ ${app.fatherAge || "-"} ปี)</div>
+      <div class="a4-label" style="margin-left: 14px;">อาชีพ:</div>
+      <div class="a4-value">${app.fatherJob || "-"}</div>
+    </div>
+    <div class="a4-row">
+      <div class="a4-label">ชื่อมารดา:</div>
+      <div class="a4-value">${app.motherName || "-"} (อายุ ${app.motherAge || "-"} ปี)</div>
+      <div class="a4-label" style="margin-left: 14px;">อาชีพ:</div>
+      <div class="a4-value">${app.motherJob || "-"}</div>
+    </div>
+
+    <div class="a4-section-title">ข้อ ๔. ที่อยู่ปัจจุบันที่ติดต่อได้</div>
+    <div class="a4-row">
+      <div class="a4-value">
         บ้านเลขที่ ${app.address ? app.address.houseNo : "-"} หมู่ที่ ${app.address ? app.address.moo || "-" : "-"} 
         ซอย ${app.address ? app.address.soi || "-" : "-"} ถนน ${app.address ? app.address.road || "-" : "-"} 
         ตำบล/แขวง ${app.address ? app.address.subdistrict : "-"} อำเภอ/เขต ${app.address ? app.address.district : "-"} 
@@ -857,18 +773,18 @@ function printCurrentApplication() {
       </div>
     </div>
 
-    <div class="gov-section-title">ข้อ ๕. ข้อมูลสถานศึกษาเดิม</div>
-    <div class="gov-row">
-      <div class="gov-label">สถานศึกษาเดิม:</div>
-      <div class="gov-value">${app.previousEducation ? app.previousEducation.schoolName : "-"} (ระดับ ${app.previousEducation ? app.previousEducation.level : "-"})</div>
-      <div class="gov-label" style="margin-left: 15px;">จังหวัด:</div>
-      <div class="gov-value">${app.previousEducation ? app.previousEducation.province : "-"}</div>
-      <div class="gov-label" style="margin-left: 15px;">GPAX ๕ ภาคเรียน:</div>
-      <div class="gov-value"><strong>${app.previousEducation ? app.previousEducation.gpax : "-"}</strong></div>
+    <div class="a4-section-title">ข้อ ๕. ข้อมูลสถานศึกษาเดิม</div>
+    <div class="a4-row">
+      <div class="a4-label">สถานศึกษาเดิม:</div>
+      <div class="a4-value">${app.previousEducation ? app.previousEducation.schoolName : "-"} (${app.previousEducation ? app.previousEducation.level : "-"})</div>
+      <div class="a4-label" style="margin-left: 14px;">จังหวัด:</div>
+      <div class="a4-value">${app.previousEducation ? app.previousEducation.province : "-"}</div>
+      <div class="a4-label" style="margin-left: 14px;">GPAX ๕ ภาคเรียน:</div>
+      <div class="a4-value"><strong>${app.previousEducation ? app.previousEducation.gpax : "-"}</strong></div>
     </div>
 
-    <div class="gov-section-title">รายการตรวจสอบเอกสารหลักฐาน (สำหรับเจ้าหน้าที่)</div>
-    <table class="gov-table-check">
+    <div class="a4-section-title">รายการตรวจสอบเอกสารหลักฐาน (สำหรับเจ้าหน้าที่ทะเบียน)</div>
+    <table class="a4-table-check">
       <thead>
         <tr>
           <th style="width: 10%;">ผล</th>
@@ -890,7 +806,7 @@ function printCurrentApplication() {
         <tr>
           <td style="text-align: center;">[ / ]</td>
           <td>๓. สำเนาบัตรประจำตัวประชาชน / สำเนาทะเบียนบ้าน</td>
-          <td>ตรวจสอบความถูกต้องเรียบร้อย</td>
+          <td>ตรวจสอบความถูกต้องแล้ว</td>
         </tr>
         <tr>
           <td style="text-align: center;">[ ${app.files && app.files.cert ? '/' : ' '} ]</td>
@@ -900,26 +816,67 @@ function printCurrentApplication() {
       </tbody>
     </table>
 
-    <div class="gov-signatures">
-      <div class="gov-sig-block">
+    <div class="a4-signatures">
+      <div class="a4-sig-block">
         <p>ลงชื่อ..........................................................ผู้สมัคร</p>
         <p>(${fullName})</p>
         <p>วันที่ยื่นสมัคร: ${app.createdDate || "...../...../....."}</p>
       </div>
-      <div class="gov-sig-block">
+      <div class="a4-sig-block">
         <p>ลงชื่อ..........................................................เจ้าหน้าที่รับสมัคร</p>
         <p>(..........................................................)</p>
         <p>วันที่ตรวจสอบ: ...../...../.....</p>
       </div>
     </div>
   `;
-
-  window.print();
 }
 
-// ============================================================================
-// Modal Utilities & Local Storage Helpers
-// ============================================================================
+/**
+ * ดาวน์โหลดใบสมัครเป็นไฟล์ PDF รายบุคคลโดยตรง
+ */
+function downloadApplicationPdf(targetApp = null) {
+  const app = targetApp || currentPrintedApplication;
+  if (!app) {
+    alert("ไม่พบข้อมูลใบสมัครที่จะสร้างไฟล์ PDF");
+    return;
+  }
+
+  const container = document.getElementById("pdfA4Template");
+  container.innerHTML = buildA4ApplicationHtml(app);
+
+  const opt = {
+    margin: [8, 10, 8, 10],
+    filename: `ใบสมัครโควตา_${app.applicationId || 'Q70'}_${app.firstName || 'ผู้สมัคร'}_${app.lastName || ''}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  if (typeof html2pdf !== "undefined") {
+    html2pdf().set(opt).from(container).save().then(() => {
+      console.log("PDF downloaded successfully");
+    }).catch(err => {
+      console.warn("html2pdf failed, falling back to window.print()", err);
+      printCurrentApplication();
+    });
+  } else {
+    printCurrentApplication();
+  }
+}
+
+/**
+ * สั่งพิมพ์ผ่านเบราว์เซอร์
+ */
+function printCurrentApplication() {
+  if (!currentPrintedApplication) {
+    alert("ไม่พบข้อมูลใบสมัครที่จะพิมพ์");
+    return;
+  }
+
+  const container = document.getElementById("govDocContent");
+  container.innerHTML = `<div class="a4-page">${buildA4ApplicationHtml(currentPrintedApplication)}</div>`;
+  window.print();
+}
 
 function openModal(modalId) {
   const m = document.getElementById(modalId);

@@ -10,7 +10,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- Custom Stylesheet -->
+  <!-- html2pdf.js for Client-Side PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <!-- Custom Modern Stylesheet -->
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -19,7 +22,7 @@
   <div class="top-bar">
     <div class="container top-bar-inner">
       <div>สำนักงานคณะกรรมการการอาชีวศึกษา (สอศ.) กระทรวงศึกษาธิการ</div>
-      <div>ปีการศึกษา 2570 | ระบบรับสมัครนักเรียน นักศึกษาใหม่ (รอบโควตา)</div>
+      <div>ปีการศึกษา 2570 | ระบบรับสมัครนักเรียน นักศึกษาใหม่ ประเภทโควตาพิเศษ</div>
     </div>
   </div>
 
@@ -27,11 +30,14 @@
   <header class="header">
     <div class="container">
       <div class="header-brand">
-        <img src="assets/images/logo.png" alt="ตราสัญลักษณ์วิทยาลัย" class="header-logo">
+        <img src="assets/images/logo.png" alt="ตราสัญลักษณ์วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์" class="header-logo">
         <div class="header-titles">
           <span class="header-sub">สังกัดสำนักงานคณะกรรมการการอาชีวศึกษา</span>
           <h1 class="header-main">วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์</h1>
-          <span class="header-tag">ระบบรับสมัครเรียนออนไลน์ ประเภทโควตาพิเศษ ประจำปีการศึกษา 2570</span>
+          <div class="header-tag">
+            <span>ระบบรับสมัครเรียนออนไลน์ ประเภทโควตาพิเศษ</span>
+            <span class="badge-year">ประจำปีการศึกษา 2570</span>
+          </div>
         </div>
       </div>
     </div>
@@ -45,13 +51,13 @@
           <a href="#home" class="nav-link active" data-tab="tab-home">หน้าแรก</a>
         </li>
         <li class="nav-item">
-          <a href="#apply" class="nav-link" data-tab="tab-apply">สมัครเรียน</a>
+          <a href="#apply" class="nav-link" data-tab="tab-apply">สมัครเรียนออนไลน์</a>
         </li>
         <li class="nav-item">
-          <a href="#status" class="nav-link" data-tab="tab-status">ตรวจสอบสถานะ</a>
+          <a href="#status" class="nav-link" data-tab="tab-status">ตรวจสอบสถานะ / พิมพ์ใบสมัคร</a>
         </li>
         <li class="nav-item staff-link">
-          <a href="admin.html" class="nav-link">สำหรับเจ้าหน้าที่</a>
+          <a href="admin.html" class="nav-link">ระบบสำหรับเจ้าหน้าที่ &rarr;</a>
         </li>
       </ul>
     </div>
@@ -81,14 +87,18 @@
             </div>
           </div>
           <div class="card-body">
-            <p style="margin-bottom: 14px; text-indent: 2rem;">
+            <p style="margin-bottom: 16px; text-indent: 2.2rem; font-size: 15.5px; color: var(--text-secondary);">
               วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์ มีความประสงค์เปิดรับสมัครบุคคลเพื่อเข้าศึกษาต่อระดับประกาศนียบัตรวิชาชีพ (ปวช.) 
               และระดับประกาศนียบัตรวิชาชีพชั้นสูง (ปวส.) ประจำปีการศึกษา 2570 ประเภทโควตาพิเศษ สำหรับนักเรียน นักศึกษาที่มีผลการเรียนดี 
               หรือมีความสามารถพิเศษ เพื่อเปิดโอกาสทางการศึกษาด้านวิชาชีพสู่มาตรฐานสากล
             </p>
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-              <button class="btn btn-primary btn-lg" onclick="switchTab('tab-apply')">เข้าสู่ระบบสมัครเรียน</button>
-              <button class="btn btn-secondary btn-lg" onclick="switchTab('tab-status')">ตรวจสอบสถานะการสมัคร</button>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px;">
+              <button class="btn btn-primary btn-lg" onclick="switchTab('tab-apply')">
+                <span>เข้าสู่ระบบสมัครเรียนออนไลน์</span> &rarr;
+              </button>
+              <button class="btn btn-secondary btn-lg" onclick="switchTab('tab-status')">
+                <span>ตรวจสอบสถานะ / พิมพ์ใบสมัคร</span>
+              </button>
             </div>
           </div>
         </div>
@@ -102,9 +112,9 @@
             <table class="schedule-table">
               <thead>
                 <tr>
-                  <th style="width: 25%;">กิจกรรม</th>
-                  <th style="width: 35%;">กำหนดการ / ระยะเวลา</th>
-                  <th style="width: 40%;">หมายเหตุ / สถานที่</th>
+                  <th style="width: 28%;">กิจกรรม</th>
+                  <th style="width: 36%;">กำหนดการ / ระยะเวลา</th>
+                  <th style="width: 36%;">หมายเหตุ / สถานที่</th>
                 </tr>
               </thead>
               <tbody>
@@ -133,47 +143,61 @@
           </div>
         </div>
 
-        <!-- Levels & Branches Offered -->
+        <!-- Levels & Branches Offered by Department -->
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">ระดับและสาขาวิชาที่เปิดรับสมัคร</h3>
+            <div>
+              <h3 class="card-title">ระดับและสาขาวิชาที่เปิดรับสมัคร แยกตามแผนกวิชา</h3>
+              <div class="card-subtitle">เปิดสอนทั้งระดับ ปวช. (3 ปี) และระดับ ปวส. (2 ปี)</div>
+            </div>
           </div>
           <div class="card-body">
             <div class="form-grid">
               
-              <div class="col-6">
-                <div style="background-color: #fafbfc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 16px;">
-                  <h4 style="color: var(--primary-navy); border-bottom: 2px solid var(--primary-gray); padding-bottom: 6px; margin-bottom: 10px;">
-                    1. ระดับประกาศนียบัตรวิชาชีพ (ปวช.)
+              <!-- แผนกช่างอุตสาหกรรม -->
+              <div class="col-4">
+                <div style="background-color: #ffffff; border: 1px solid var(--border-color); border-top: 3px solid var(--dept-industry); border-radius: var(--radius-sm); padding: 18px; height: 100%;">
+                  <h4 style="color: var(--dept-industry); margin-bottom: 6px; font-size: 16px;">
+                    แผนกวิชาช่างอุตสาหกรรม
                   </h4>
-                  <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">คุณสมบัติ: สำเร็จการศึกษา ม.3 หรือเทียบเท่า</p>
-                  <ul id="homeBranchListPWC" style="padding-left: 20px; font-size: 14px; line-height: 1.8;">
-                    <li>สาขาวิชาช่างยนต์</li>
-                    <li>สาขาวิชาช่างกลโรงงาน</li>
+                  <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">ระดับ ปวช. และ ปวส.</div>
+                  <ul style="padding-left: 18px; font-size: 13.5px; line-height: 1.8; color: var(--text-secondary);">
+                    <li>สาขาวิชาช่างยนต์ / เทคนิคเครื่องกล</li>
+                    <li>สาขาวิชาช่างกลโรงงาน / เทคนิคการผลิต</li>
                     <li>สาขาวิชาช่างเชื่อมโลหะ</li>
-                    <li>สาขาวิชาช่างไฟฟ้ากำลัง</li>
-                    <li>สาขาวิชาช่างอิเล็กทรอนิกส์</li>
-                    <li>สาขาวิชาเทคโนโลยีคอมพิวเตอร์</li>
-                    <li>สาขาวิชาการบัญชี</li>
-                    <li>สาขาวิชาการตลาด</li>
+                    <li>สาขาวิชาช่างไฟฟ้ากำลัง / ไฟฟ้ากำลัง</li>
+                    <li>สาขาวิชาช่างอิเล็กทรอนิกส์ / อิเล็กทรอนิกส์</li>
                   </ul>
                 </div>
               </div>
 
-              <div class="col-6">
-                <div style="background-color: #fafbfc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 16px;">
-                  <h4 style="color: var(--primary-navy); border-bottom: 2px solid var(--primary-gray); padding-bottom: 6px; margin-bottom: 10px;">
-                    2. ระดับประกาศนียบัตรวิชาชีพชั้นสูง (ปวส.)
+              <!-- แผนกเทคโนโลยีสารสนเทศ -->
+              <div class="col-4">
+                <div style="background-color: #ffffff; border: 1px solid var(--border-color); border-top: 3px solid var(--dept-it); border-radius: var(--radius-sm); padding: 18px; height: 100%;">
+                  <h4 style="color: var(--dept-it); margin-bottom: 6px; font-size: 16px;">
+                    แผนกเทคโนโลยีคอมพิวเตอร์
                   </h4>
-                  <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">คุณสมบัติ: สำเร็จการศึกษา ปวช. หรือ ม.6 / เทียบเท่า</p>
-                  <ul id="homeBranchListPWS" style="padding-left: 20px; font-size: 14px; line-height: 1.8;">
-                    <li>สาขาวิชาเทคนิคเครื่องกล (ปวส. สายตรง / ม.6)</li>
-                    <li>สาขาวิชาเทคนิคการผลิต (ปวส. สายตรง / ม.6)</li>
-                    <li>สาขาวิชาไฟฟ้ากำลัง (ปวส. สายตรง / ม.6)</li>
-                    <li>สาขาวิชาอิเล็กทรอนิกส์ (ปวส. สายตรง / ม.6)</li>
-                    <li>สาขาวิชาเทคโนโลยีคอมพิวเตอร์ (ปวส. สายตรง / ม.6)</li>
-                    <li>สาขาวิชาการบัญชี (ปวส. สายตรง / ม.6)</li>
-                    <li>สาขาวิชาการจัดการโลจิสติกส์และซัพพลายเชน (ปวส. สายตรง / ม.6)</li>
+                  <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">ระดับ ปวช. และ ปวส.</div>
+                  <ul style="padding-left: 18px; font-size: 13.5px; line-height: 1.8; color: var(--text-secondary);">
+                    <li>สาขาวิชาเทคโนโลยีคอมพิวเตอร์ (ปวช.)</li>
+                    <li>สาขาวิชาเทคโนโลยีคอมพิวเตอร์ (ปวส. สายตรง)</li>
+                    <li>สาขาวิชาเทคโนโลยีคอมพิวเตอร์ (ปวส. ม.6/ต่างสาขา)</li>
+                    <li>พัฒนาระบบซอฟต์แวร์และเครือข่าย</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- แผนกบริหารธุรกิจและพาณิชยกรรม -->
+              <div class="col-4">
+                <div style="background-color: #ffffff; border: 1px solid var(--border-color); border-top: 3px solid var(--dept-commerce); border-radius: var(--radius-sm); padding: 18px; height: 100%;">
+                  <h4 style="color: var(--dept-commerce); margin-bottom: 6px; font-size: 16px;">
+                    แผนกบริหารธุรกิจ & พาณิชยกรรม
+                  </h4>
+                  <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">ระดับ ปวช. และ ปวส.</div>
+                  <ul style="padding-left: 18px; font-size: 13.5px; line-height: 1.8; color: var(--text-secondary);">
+                    <li>สาขาวิชาการบัญชี (ปวช. และ ปวส.)</li>
+                    <li>สาขาวิชาการตลาด (ปวช.)</li>
+                    <li>สาขาวิชาการจัดการโลจิสติกส์และซัพพลายเชน (ปวส.)</li>
                   </ul>
                 </div>
               </div>
@@ -188,7 +212,7 @@
             <h3 class="card-title">เอกสารและหลักฐานที่ต้องเตรียมก่อนกรอกใบสมัคร</h3>
           </div>
           <div class="card-body">
-            <ol style="padding-left: 20px; font-size: 14px; line-height: 1.9;">
+            <ol style="padding-left: 20px; font-size: 14px; line-height: 2;">
               <li><strong>รูปถ่ายหน้าตรงขนาด 1 นิ้ว:</strong> หน้าตรง ไม่สวมหมวก ไม่สวมแว่นตาดำ ถ่ายไว้ไม่เกิน 6 เดือน (ไฟล์ JPG หรือ PNG ไม่เกิน 5 MB)</li>
               <li><strong>เอกสารแสดงผลการเรียนเฉลี่ยสะสม 5 ภาคเรียน:</strong> ปพ.1 หรือ รบ. (ไฟล์ JPG, PNG หรือ PDF ไม่เกิน 5 MB)</li>
               <li><strong>สำเนาบัตรประจำตัวประชาชน หรือสำเนาทะเบียนบ้าน:</strong> ของผู้สมัคร (ไฟล์ JPG, PNG หรือ PDF ไม่เกิน 5 MB)</li>
@@ -204,11 +228,35 @@
            ================================================================== -->
       <section id="tab-apply" class="tab-pane" style="display: none;">
         
+        <!-- Step Indicator -->
+        <div class="step-indicator">
+          <div class="step-item active">
+            <span class="step-num">1</span>
+            <span>เลือกระดับที่สมัคร</span>
+          </div>
+          <div class="step-item active">
+            <span class="step-num">2</span>
+            <span>ข้อมูลผู้สมัคร & ครอบครัว</span>
+          </div>
+          <div class="step-item active">
+            <span class="step-num">3</span>
+            <span>ที่อยู่ & โรงเรียนเดิม</span>
+          </div>
+          <div class="step-item active">
+            <span class="step-num">4</span>
+            <span>เลือกสาขาวิชา & เอกสาร</span>
+          </div>
+          <div class="step-item active">
+            <span class="step-num">5</span>
+            <span>ยินยอม PDPA & ยื่นสมัคร</span>
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-header official-navy">
             <div>
-              <h2 class="card-title">ใบสมัครเข้าศึกษาต่อ ประเภทโควตา ประจำปีการศึกษา 2570</h2>
-              <div class="card-subtitle" style="color: #cbd5e1;">กรุณากรอกข้อมูลตามความเป็นจริงให้ครบถ้วน ข้อมูลทั้งหมดจะถูกตรวจสอบกับเอกสารหลักฐาน</div>
+              <h2 class="card-title">แบบฟอร์มใบสมัครเข้าศึกษาต่อ ประเภทโควตา ประจำปีการศึกษา 2570</h2>
+              <div class="card-subtitle" style="color: #cbd5e1;">กรุณากรอกข้อมูลตามความเป็นจริงให้ครบถ้วน ระบบจะบันทึกและสร้างเอกสาร PDF ทางราชการให้อัตโนมัติ</div>
             </div>
           </div>
 
@@ -221,7 +269,7 @@
                 <div class="section-legend">
                   <span>ระดับการศึกษาที่ต้องการสมัคร <span style="color: #dc2626;">*</span></span>
                 </div>
-                <div class="radio-group" style="padding: 6px 0;">
+                <div class="radio-group">
                   <label class="custom-radio">
                     <input type="radio" name="applyLevel" value="ปวส. (สายตรง)" required onchange="handleLevelChange(this.value)">
                     <span>ประกาศนียบัตรวิชาชีพชั้นสูง - ปวส. (สายตรง)</span>
@@ -632,15 +680,15 @@
       </section>
 
       <!-- ==================================================================
-           TAB 3: ตรวจสอบสถานะ (Status Inquiry & Document Re-upload)
+           TAB 3: ตรวจสอบสถานะ & พิมพ์ใบสมัคร (Status Inquiry & PDF)
            ================================================================== -->
       <section id="tab-status" class="tab-pane" style="display: none;">
         
         <div class="card">
           <div class="card-header official-navy">
             <div>
-              <h2 class="card-title">ตรวจสอบสถานะการสมัครเรียน</h2>
-              <div class="card-subtitle" style="color: #cbd5e1;">ค้นหาข้อมูลด้วยเลขประจำตัวประชาชน 13 หลักของผู้สมัคร</div>
+              <h2 class="card-title">ตรวจสอบสถานะการสมัครเรียนและดาวน์โหลดใบสมัคร</h2>
+              <div class="card-subtitle" style="color: #cbd5e1;">ค้นหาข้อมูลด้วยเลขประจำตัวประชาชน 13 หลักของผู้สมัคร เพื่อดูผลการคัดเลือกหรือพิมพ์ใบสมัครฉบับทางการ</div>
             </div>
           </div>
           <div class="card-body">
@@ -664,17 +712,17 @@
 
             <!-- Search Result Container -->
             <div id="statusResultContainer" style="display: none; margin-top: 30px;">
-              <div style="border: 1px solid var(--border-color); border-radius: var(--radius-sm); overflow: hidden;">
+              <div style="border: 1px solid var(--border-color); border-radius: var(--radius-sm); overflow: hidden; background: #ffffff;">
                 
-                <div style="background-color: #f8fafc; padding: 14px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <div style="background-color: #f8fafc; padding: 16px 22px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
                   <div>
                     <span style="font-size: 13px; color: var(--text-muted);">เลขที่ใบสมัคร:</span>
-                    <strong id="resAppId" style="font-size: 16px; color: var(--primary-navy); margin-left: 6px;"></strong>
+                    <strong id="resAppId" style="font-size: 18px; color: var(--primary-navy); margin-left: 6px;"></strong>
                   </div>
                   <div id="resStatusBadge"></div>
                 </div>
 
-                <div style="padding: 20px; font-size: 14px; line-height: 2;">
+                <div style="padding: 22px; font-size: 14px; line-height: 2;">
                   <div class="form-grid">
                     <div class="col-6">
                       <strong>ชื่อ - นามสกุล:</strong> <span id="resName"></span>
@@ -694,16 +742,23 @@
                     <div class="col-6">
                       <strong>วันที่ยื่นสมัคร:</strong> <span id="resDate"></span>
                     </div>
-                    <div class="col-12" id="resRemarksBox" style="margin-top: 10px; background-color: #fffbeb; border: 1px solid #fef3c7; padding: 12px; border-radius: var(--radius-sm);">
-                      <strong style="color: #92400e;">ข้อความ/คำแนะนำจากเจ้าหน้าที่ทะเบียน:</strong>
+                    <div class="col-12" id="resRemarksBox" style="margin-top: 10px; background-color: #fffbeb; border: 1px solid #fef3c7; padding: 14px; border-radius: var(--radius-sm);">
+                      <strong style="color: #92400e;">ข้อความ / คำแนะนำจากเจ้าหน้าที่ทะเบียน:</strong>
                       <div id="resRemarks" style="color: #78350f; margin-top: 4px;">-</div>
                     </div>
                   </div>
 
-                  <!-- Actions: Print Application / Re-upload button -->
-                  <div style="display: flex; gap: 10px; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-                    <button class="btn btn-secondary" onclick="printCurrentApplication()">พิมพ์/ดาวน์โหลดใบสมัคร (A4)</button>
-                    <button id="btnOpenReupload" class="btn btn-warning" style="display: none; background-color: #d97706; color: white;" onclick="openReuploadModal()">อัปโหลดเอกสารแก้ไขเพิ่มเติม</button>
+                  <!-- Actions: PDF Download / Print / Re-upload -->
+                  <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; border-top: 1px solid var(--border-color); padding-top: 18px;">
+                    <button class="btn btn-pdf btn-lg" onclick="downloadApplicationPdf()">
+                      <span>📄 ดาวน์โหลดใบสมัคร (PDF)</span>
+                    </button>
+                    <button class="btn btn-secondary btn-lg" onclick="printCurrentApplication()">
+                      <span>🖨️ สั่งพิมพ์ใบสมัคร (A4)</span>
+                    </button>
+                    <button id="btnOpenReupload" class="btn btn-warning btn-lg" style="display: none; background-color: #d97706; color: white;" onclick="openReuploadModal()">
+                      <span>อัปโหลดเอกสารแก้ไขเพิ่มเติม</span>
+                    </button>
                   </div>
 
                 </div>
@@ -715,7 +770,7 @@
             <div id="statusNotFound" class="notice-box" style="display: none; margin-top: 25px; border-left-color: #dc2626;">
               <h4 style="color: #991b1b; margin-bottom: 4px;">ไม่พบข้อมูลการสมัครเรียน</h4>
               <p style="font-size: 13px; color: var(--text-secondary);">
-                ไม่พบข้อมูลใบสมัครที่ตรงกับเลขประจำตัวประชาชนที่ระบุ กรุณาตรวจสอบความถูกต้อง หรือยื่นสมัครเรียนได้ที่เมนู "สมัครเรียน"
+                ไม่พบข้อมูลใบสมัครที่ตรงกับเลขประจำตัวประชาชนที่ระบุ กรุณาตรวจสอบความถูกต้อง หรือยื่นสมัครเรียนได้ที่เมนู "สมัครเรียนออนไลน์"
               </p>
             </div>
 
@@ -728,7 +783,7 @@
   </main>
 
   <!-- ======================================================================
-       MODAL: ยืนยันการส่งใบสมัคร & แสดงเลขที่ใบสมัคร
+       MODAL: ยืนยันการส่งใบสมัคร & ปุ่มดาวน์โหลด PDF ทันที
        ====================================================================== -->
   <div id="modalSuccess" class="modal-overlay">
     <div class="modal-dialog">
@@ -737,25 +792,32 @@
         <button class="modal-close" onclick="closeModal('modalSuccess')">&times;</button>
       </div>
       <div class="modal-body" style="text-align: center; padding: 30px 20px;">
-        <div style="font-size: 48px; color: #166534; margin-bottom: 10px;">✓</div>
-        <h3 style="color: var(--primary-navy); margin-bottom: 8px;">ระบบได้บันทึกข้อมูลใบสมัครของท่านเรียบร้อยแล้ว</h3>
-        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">กรุณาจดจำหรือบันทึกเลขที่ใบสมัครเพื่อใช้ในการติดตามสถานะ</p>
+        <div style="font-size: 46px; color: #166534; margin-bottom: 8px;">✓</div>
+        <h3 style="color: var(--primary-navy-dark); margin-bottom: 6px; font-size: 20px;">ระบบได้บันทึกข้อมูลใบสมัครของท่านเรียบร้อยแล้ว</h3>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">ข้อมูลทั้งหมดถูกจัดเก็บในฐานข้อมูลงานทะเบียนและ Google Drive อย่างปลอดภัย</p>
         
-        <div style="display: inline-block; background-color: #f1f5f9; border: 2px dashed var(--primary-navy); padding: 12px 30px; border-radius: var(--radius-sm); margin-bottom: 25px;">
+        <div style="display: inline-block; background-color: #f8fafc; border: 2px dashed var(--primary-navy); padding: 14px 36px; border-radius: var(--radius-sm); margin-bottom: 24px;">
           <div style="font-size: 13px; color: var(--text-muted);">เลขที่ใบสมัครของท่าน</div>
-          <div id="modalAppId" style="font-size: 28px; font-weight: 700; color: var(--primary-navy); letter-spacing: 1px;">Q70-0001</div>
+          <div id="modalAppId" style="font-size: 30px; font-weight: 700; color: var(--primary-navy); letter-spacing: 1px;">Q70-0001</div>
         </div>
 
-        <div style="display: flex; justify-content: center; gap: 12px;">
-          <button class="btn btn-primary btn-lg" onclick="printCurrentApplication()">พิมพ์/ดาวน์โหลดเอกสารใบสมัคร (A4)</button>
-          <button class="btn btn-secondary btn-lg" onclick="closeModal('modalSuccess'); switchTab('tab-status');">ตรวจสอบสถานะ</button>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;">
+          <button class="btn btn-pdf btn-lg" onclick="downloadApplicationPdf()">
+            <span>📄 ดาวน์โหลดใบสมัคร (PDF)</span>
+          </button>
+          <button class="btn btn-secondary btn-lg" onclick="printCurrentApplication()">
+            <span>🖨️ สั่งพิมพ์ (A4)</span>
+          </button>
+          <button class="btn btn-primary btn-lg" onclick="closeModal('modalSuccess'); switchTab('tab-status');">
+            <span>ตรวจสอบสถานะ</span>
+          </button>
         </div>
       </div>
     </div>
   </div>
 
   <!-- ======================================================================
-       MODAL: อัปโหลดเอกสารแก้ไขเพิ่มเติม (เมื่อสถานะเป็น "เอกสารไม่ครบ")
+       MODAL: อัปโหลดเอกสารแก้ไขเพิ่มเติม
        ====================================================================== -->
   <div id="modalReupload" class="modal-overlay">
     <div class="modal-dialog">
@@ -798,12 +860,16 @@
   </div>
 
   <!-- ======================================================================
-       PRINTABLE AREA: ใบสมัครขนาด A4 แบบเอกสารราชการทางการ (ตัวเลขไทย)
+       TEMPLATE FOR A4 PRINT & PDF GENERATION
+       (100% Official Thai Vocational Paper Application Form Layout)
        ====================================================================== -->
   <div id="printable-area">
-    <div class="gov-doc" id="govDocContent">
-      <!-- Generated dynamically by app.js -->
-    </div>
+    <div id="govDocContent"></div>
+  </div>
+
+  <!-- Dedicated PDF Render Container for html2pdf.js -->
+  <div id="pdf-render-area" style="position: absolute; left: -9999px; top: -9999px;">
+    <div id="pdfA4Template" class="a4-page"></div>
   </div>
 
   <!-- Footer -->
@@ -819,9 +885,9 @@
           </div>
         </div>
         <div style="text-align: right;">
-          <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">ระบบงานทะเบียนออนไลน์</div>
-          <div>เปิดรับสมัครบุคคลเข้าศึกษาต่อ ระดับ ปวช. และ ปวส.</div>
-          <div style="margin-top: 8px;">งานรับสมัครและแนะแนวการศึกษา</div>
+          <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">ระบบงานทะเบียนและรับสมัครออนไลน์</div>
+          <div>เปิดรับสมัครบุคคลเข้าศึกษาต่อ ระดับ ปวช. และ ปวส. ประจำปีการศึกษา ๒๕๗๐</div>
+          <div style="margin-top: 8px; color: #94a3b8;">งานรับสมัครและแนะแนวการศึกษา</div>
         </div>
       </div>
       <div class="footer-bottom">

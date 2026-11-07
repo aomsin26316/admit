@@ -1,39 +1,57 @@
 /* ==========================================================================
    ระบบรับสมัครเรียนออนไลน์ (โควตา) - วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์
-   ธีมสไตล์หน่วยงานราชการ/สถานศึกษา: สุภาพ น่าเชื่อถือ เรียบหรู ทันสมัย
-   Typography: Sarabun, Minimal Radius (<= 4px), Flat UI, No Gradient
+   ธีมสไตล์สถานศึกษาและหน่วยงานราชการยุคใหม่: สุภาพ สง่างาม ทันสมัย โมเดิร์น
+   Typography: Sarabun, Minimal Radius (<= 4px), Flat Modern UI, Responsive
    ========================================================================== */
 
 :root {
   --font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --bg-body: #f4f6f8;
+  --bg-body: #f8fafc;
   --bg-card: #ffffff;
   --bg-header: #ffffff;
-  --bg-footer: #1e293b;
+  --bg-footer: #0f172a;
   
   --primary-navy: #1e3a5f;
+  --primary-navy-dark: #0f2744;
   --primary-navy-hover: #152a45;
+  --primary-blue: #2563eb;
+  --primary-blue-hover: #1d4ed8;
   --primary-gray: #bfc6c4;
-  --border-color: #d1d5db;
+  --border-color: #e2e8f0;
   --border-focus: #1e3a5f;
   
-  --text-primary: #1f2937;
-  --text-secondary: #4b5563;
-  --text-muted: #6b7280;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
   --text-light: #ffffff;
   
-  --status-pending-bg: #e2e8f0;
+  /* Status Colors */
+  --status-pending-bg: #f1f5f9;
   --status-pending-text: #475569;
-  --status-fix-bg: #fef3c7;
-  --status-fix-text: #92400e;
-  --status-approved-bg: #dcfce7;
-  --status-approved-text: #166534;
-  --status-rejected-bg: #fee2e2;
-  --status-rejected-text: #991b1b;
-  --status-enrolled-bg: #e0e7ff;
-  --status-enrolled-text: #3730a3;
+  --status-pending-border: #cbd5e1;
   
-  --radius-sm: 2px;
+  --status-fix-bg: #fffbeb;
+  --status-fix-text: #b45309;
+  --status-fix-border: #fde68a;
+  
+  --status-approved-bg: #f0fdf4;
+  --status-approved-text: #15803d;
+  --status-approved-border: #bbf7d0;
+  
+  --status-rejected-bg: #fef2f2;
+  --status-rejected-text: #b91c1c;
+  --status-rejected-border: #fecaca;
+  
+  --status-enrolled-bg: #eef2ff;
+  --status-enrolled-text: #4338ca;
+  --status-enrolled-border: #c7d2fe;
+  
+  /* Department Colors */
+  --dept-industry: #1e3a5f;
+  --dept-commerce: #059669;
+  --dept-it: #4f46e5;
+  
+  --radius-sm: 3px;
   --radius-md: 4px;
   
   --space-xs: 4px;
@@ -63,13 +81,13 @@ body {
    -------------------------------------------------------------------------- */
 .container {
   width: 100%;
-  max-width: 1140px;
+  max-width: 1160px;
   margin: 0 auto;
   padding: 0 var(--space-md);
 }
 
 .main-content {
-  padding: var(--space-xl) 0;
+  padding: var(--space-xl) 0 60px;
   min-height: calc(100vh - 280px);
 }
 
@@ -77,11 +95,11 @@ body {
    Top Bar & Header
    -------------------------------------------------------------------------- */
 .top-bar {
-  background-color: #0f1e31;
+  background-color: var(--primary-navy-dark);
   color: #e2e8f0;
   font-size: 13px;
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .top-bar-inner {
@@ -93,20 +111,22 @@ body {
 .header {
   background-color: var(--bg-header);
   border-bottom: 2px solid var(--primary-navy);
-  padding: var(--space-md) 0;
+  padding: 18px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .header-brand {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: 20px;
 }
 
 .header-logo {
-  width: 72px;
-  height: 72px;
+  width: 78px;
+  height: 78px;
   object-fit: contain;
   flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06));
 }
 
 .header-titles {
@@ -118,13 +138,13 @@ body {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
-  letter-spacing: 0.2px;
+  letter-spacing: 0.3px;
 }
 
 .header-main {
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 700;
-  color: var(--primary-navy);
+  color: var(--primary-navy-dark);
   line-height: 1.3;
 }
 
@@ -132,6 +152,20 @@ body {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.badge-year {
+  background-color: #eff6ff;
+  color: var(--primary-blue);
+  border: 1px solid #bfdbfe;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
 }
 
 /* --------------------------------------------------------------------------
@@ -143,6 +177,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .nav-list {
@@ -157,13 +192,13 @@ body {
 
 .nav-link {
   display: block;
-  padding: 12px 20px;
-  color: #f1f5f9;
+  padding: 13px 22px;
+  color: #f8fafc;
   text-decoration: none;
   font-weight: 500;
   font-size: 15px;
   border-bottom: 3px solid transparent;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .nav-link:hover {
@@ -172,8 +207,8 @@ body {
 }
 
 .nav-link.active {
-  background-color: rgba(255, 255, 255, 0.15);
-  border-bottom-color: #fbbf24;
+  background-color: rgba(255, 255, 255, 0.14);
+  border-bottom-color: #38bdf8;
   color: #ffffff;
   font-weight: 600;
 }
@@ -181,21 +216,26 @@ body {
 .nav-link.staff-link {
   margin-left: auto;
   border-left: 1px solid rgba(255, 255, 255, 0.15);
+  background-color: rgba(0, 0, 0, 0.12);
+}
+
+.nav-link.staff-link:hover {
+  background-color: rgba(0, 0, 0, 0.25);
 }
 
 /* --------------------------------------------------------------------------
-   Cards & Sections
+   Modern Cards & Panels
    -------------------------------------------------------------------------- */
 .card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-lg);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .card-header {
-  padding: var(--space-md) var(--space-lg);
+  padding: 14px 22px;
   border-bottom: 1px solid var(--border-color);
   background-color: #fafbfc;
   display: flex;
@@ -212,7 +252,7 @@ body {
 .card-title {
   font-size: 17px;
   font-weight: 600;
-  color: var(--primary-navy);
+  color: var(--primary-navy-dark);
 }
 
 .card-header.official-navy .card-title {
@@ -226,13 +266,59 @@ body {
 }
 
 .card-body {
-  padding: var(--space-lg);
+  padding: 22px;
 }
 
 .card-footer {
-  padding: var(--space-md) var(--space-lg);
+  padding: 14px 22px;
   border-top: 1px solid var(--border-color);
   background-color: #fafbfc;
+}
+
+/* --------------------------------------------------------------------------
+   Step Indicator (Modern Multi-Step Visual Guide)
+   -------------------------------------------------------------------------- */
+.step-indicator {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.step-item.active {
+  color: var(--primary-navy);
+}
+
+.step-num {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background-color: #f1f5f9;
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.step-item.active .step-num {
+  background-color: var(--primary-navy);
+  color: #ffffff;
+  border-color: var(--primary-navy);
 }
 
 /* --------------------------------------------------------------------------
@@ -241,7 +327,7 @@ body {
 .form-section {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: var(--space-lg);
+  padding: 20px;
   margin-bottom: var(--space-lg);
   background-color: #ffffff;
 }
@@ -249,10 +335,10 @@ body {
 .section-legend {
   font-size: 16px;
   font-weight: 700;
-  color: var(--primary-navy);
-  border-bottom: 2px solid var(--primary-gray);
-  padding-bottom: var(--space-xs);
-  margin-bottom: var(--space-md);
+  color: var(--primary-navy-dark);
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -261,7 +347,7 @@ body {
 .form-grid {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: var(--space-md);
+  gap: 16px;
 }
 
 .col-12 { grid-column: span 12; }
@@ -305,15 +391,16 @@ body {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   outline: none;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .form-control:focus {
-  border-color: var(--border-focus);
+  border-color: var(--primary-navy);
+  box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.12);
 }
 
 .form-control:disabled, .form-control[readonly] {
-  background-color: #f1f5f9;
+  background-color: #f8fafc;
   cursor: not-allowed;
 }
 
@@ -324,7 +411,7 @@ select.form-control {
 
 textarea.form-control {
   height: auto;
-  min-height: 80px;
+  min-height: 85px;
   resize: vertical;
 }
 
@@ -352,7 +439,7 @@ textarea.form-control {
 .radio-group, .checkbox-group {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-md);
+  gap: 16px;
   margin-top: 4px;
 }
 
@@ -362,6 +449,16 @@ textarea.form-control {
   font-size: 14px;
   cursor: pointer;
   user-select: none;
+  background-color: #fafbfc;
+  border: 1px solid var(--border-color);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.custom-radio:hover, .custom-checkbox:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .custom-radio input, .custom-checkbox input {
@@ -394,11 +491,16 @@ textarea.form-control {
 
 /* File Upload System */
 .file-upload-card {
-  border: 1px dashed var(--border-color);
+  border: 1px dashed #cbd5e1;
   border-radius: var(--radius-sm);
-  padding: var(--space-md);
+  padding: 14px 16px;
   background-color: #fbfcfd;
-  margin-bottom: var(--space-md);
+  margin-bottom: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.file-upload-card:hover {
+  border-color: var(--primary-navy);
 }
 
 .file-upload-header {
@@ -438,7 +540,7 @@ textarea.form-control {
 }
 
 /* --------------------------------------------------------------------------
-   Buttons
+   Modern Buttons
    -------------------------------------------------------------------------- */
 .btn {
   display: inline-flex;
@@ -448,13 +550,14 @@ textarea.form-control {
   font-size: 14px;
   font-weight: 600;
   height: 40px;
-  padding: 0 20px;
+  padding: 0 18px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
   text-decoration: none;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
+  gap: 6px;
 }
 
 .btn-primary {
@@ -468,6 +571,17 @@ textarea.form-control {
   border-color: var(--primary-navy-hover);
 }
 
+.btn-blue {
+  background-color: var(--primary-blue);
+  color: #ffffff;
+  border-color: var(--primary-blue);
+}
+
+.btn-blue:hover {
+  background-color: var(--primary-blue-hover);
+  border-color: var(--primary-blue-hover);
+}
+
 .btn-secondary {
   background-color: #ffffff;
   color: var(--text-primary);
@@ -475,7 +589,8 @@ textarea.form-control {
 }
 
 .btn-secondary:hover {
-  background-color: #f3f4f6;
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .btn-success {
@@ -496,6 +611,16 @@ textarea.form-control {
 
 .btn-danger:hover {
   background-color: #7f1d1d;
+}
+
+.btn-pdf {
+  background-color: #b91c1c;
+  color: #ffffff;
+  border-color: #991b1b;
+}
+
+.btn-pdf:hover {
+  background-color: #991b1b;
 }
 
 .btn-sm {
@@ -520,7 +645,7 @@ textarea.form-control {
 }
 
 /* --------------------------------------------------------------------------
-   Status Badges
+   Status Badges (Pills)
    -------------------------------------------------------------------------- */
 .status-badge {
   display: inline-block;
@@ -534,31 +659,31 @@ textarea.form-control {
 .status-pending {
   background-color: var(--status-pending-bg);
   color: var(--status-pending-text);
-  border-color: #cbd5e1;
+  border-color: var(--status-pending-border);
 }
 
 .status-fix {
   background-color: var(--status-fix-bg);
   color: var(--status-fix-text);
-  border-color: #fde68a;
+  border-color: var(--status-fix-border);
 }
 
 .status-approved {
   background-color: var(--status-approved-bg);
   color: var(--status-approved-text);
-  border-color: #bbf7d0;
+  border-color: var(--status-approved-border);
 }
 
 .status-rejected {
   background-color: var(--status-rejected-bg);
   color: var(--status-rejected-text);
-  border-color: #fecaca;
+  border-color: var(--status-rejected-border);
 }
 
 .status-enrolled {
   background-color: var(--status-enrolled-bg);
   color: var(--status-enrolled-text);
-  border-color: #c7d2fe;
+  border-color: var(--status-enrolled-border);
 }
 
 /* --------------------------------------------------------------------------
@@ -583,13 +708,13 @@ textarea.form-control {
   background-color: var(--primary-navy);
   color: #ffffff;
   font-weight: 600;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border: 1px solid #182e4b;
   white-space: nowrap;
 }
 
 .table-official tbody td {
-  padding: 8px 12px;
+  padding: 9px 12px;
   border: 1px solid #e5e7eb;
   color: var(--text-primary);
   vertical-align: middle;
@@ -604,12 +729,12 @@ textarea.form-control {
 }
 
 /* --------------------------------------------------------------------------
-   Dashboard & Analytics Cards
+   Modern Dashboard & Analytics
    -------------------------------------------------------------------------- */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-md);
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
   margin-bottom: var(--space-lg);
 }
 
@@ -617,8 +742,9 @@ textarea.form-control {
   background: #ffffff;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  padding: var(--space-md);
+  padding: 16px 20px;
   border-left: 4px solid var(--primary-navy);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .stat-card.stat-pending { border-left-color: #64748b; }
@@ -633,9 +759,9 @@ textarea.form-control {
 }
 
 .stat-value {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--primary-navy-dark);
   margin-top: 4px;
 }
 
@@ -644,6 +770,41 @@ textarea.form-control {
   color: var(--text-secondary);
   margin-top: 2px;
 }
+
+/* Progress Quota Bar */
+.quota-progress-wrapper {
+  margin-top: 10px;
+}
+
+.quota-row {
+  margin-bottom: 12px;
+}
+
+.quota-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.quota-bar-track {
+  width: 100%;
+  height: 8px;
+  background-color: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.quota-bar-fill {
+  height: 100%;
+  background-color: var(--primary-navy);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.quota-bar-fill.fill-industry { background-color: var(--dept-industry); }
+.quota-bar-fill.fill-commerce { background-color: var(--dept-commerce); }
+.quota-bar-fill.fill-it { background-color: var(--dept-it); }
 
 /* --------------------------------------------------------------------------
    Modal System
@@ -654,12 +815,13 @@ textarea.form-control {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(15, 23, 42, 0.6);
+  background-color: rgba(15, 23, 42, 0.65);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: var(--space-md);
+  backdrop-filter: blur(2px);
 }
 
 .modal-overlay.is-active {
@@ -671,22 +833,22 @@ textarea.form-control {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   width: 100%;
-  max-width: 720px;
+  max-width: 760px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
 }
 
 .modal-dialog.modal-lg {
-  max-width: 900px;
+  max-width: 950px;
 }
 
 .modal-header {
   background-color: var(--primary-navy);
   color: #ffffff;
-  padding: var(--space-md) var(--space-lg);
+  padding: 14px 22px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -702,20 +864,26 @@ textarea.form-control {
   background: none;
   border: none;
   color: #ffffff;
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
   padding: 0 6px;
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
+}
+
+.modal-close:hover {
+  opacity: 1;
 }
 
 .modal-body {
-  padding: var(--space-lg);
+  padding: 22px;
   overflow-y: auto;
   font-size: 14px;
 }
 
 .modal-footer {
-  padding: var(--space-md) var(--space-lg);
+  padding: 14px 22px;
   border-top: 1px solid var(--border-color);
   background-color: #fafbfc;
   display: flex;
@@ -744,15 +912,15 @@ textarea.form-control {
 }
 
 .schedule-table th, .schedule-table td {
-  padding: 10px 14px;
+  padding: 11px 14px;
   border: 1px solid var(--border-color);
   font-size: 14px;
 }
 
 .schedule-table th {
-  background-color: #f1f5f9;
+  background-color: #f8fafc;
   font-weight: 600;
-  color: var(--primary-navy);
+  color: var(--primary-navy-dark);
 }
 
 /* --------------------------------------------------------------------------
@@ -762,7 +930,7 @@ textarea.form-control {
   background-color: var(--bg-footer);
   color: #94a3b8;
   font-size: 13px;
-  padding: var(--space-xl) 0 var(--space-lg);
+  padding: 36px 0 24px;
   border-top: 3px solid var(--primary-navy);
 }
 
@@ -791,7 +959,7 @@ textarea.form-control {
 }
 
 .footer-bottom {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-top: var(--space-md);
   text-align: center;
   font-size: 12px;
@@ -804,9 +972,10 @@ textarea.form-control {
 }
 
 /* --------------------------------------------------------------------------
-   Printable A4 Application Form Style (100% Official Thai Form)
+   Official Individual A4 PDF / Print Layout Template
+   (Strictly 100% Matching Thai Vocational Paper Application Form)
    -------------------------------------------------------------------------- */
-#printable-area {
+#printable-area, #pdf-render-area {
   display: none;
 }
 
@@ -824,11 +993,11 @@ textarea.form-control {
     top: 0;
     width: 100%;
     margin: 0;
-    padding: 10mm;
+    padding: 12mm 15mm;
     background: #ffffff;
     font-family: 'Sarabun', serif;
-    font-size: 12pt;
-    line-height: 1.4;
+    font-size: 11pt;
+    line-height: 1.35;
     color: #000000;
   }
   .no-print {
@@ -836,22 +1005,24 @@ textarea.form-control {
   }
 }
 
-.gov-doc {
+/* Style inside the generated PDF / Print sheet */
+.a4-page {
+  width: 100%;
   background: #ffffff;
-  padding: 15mm;
   color: #000000;
   font-family: 'Sarabun', sans-serif;
-  line-height: 1.4;
-  position: relative;
+  line-height: 1.35;
   box-sizing: border-box;
+  padding: 12mm 15mm;
 }
 
-.gov-header {
+.a4-header {
   position: relative;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
+  min-height: 130px;
 }
 
-.gov-photo-box {
+.a4-photo-box {
   position: absolute;
   top: 0;
   right: 0;
@@ -862,88 +1033,97 @@ textarea.form-control {
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-size: 11pt;
+  font-size: 10pt;
   background-color: #fafafa;
+  overflow: hidden;
 }
 
-.gov-photo-box img {
+.a4-photo-box img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.gov-title-block {
+.a4-title-block {
   text-align: center;
-  padding-right: 3.5cm;
+  padding-right: 3.4cm;
 }
 
-.gov-title-main {
+.a4-logo {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  margin-bottom: 2px;
+}
+
+.a4-title-main {
   font-size: 15pt;
   font-weight: 700;
 }
 
-.gov-title-sub {
+.a4-title-sub {
   font-size: 13pt;
   font-weight: 600;
 }
 
-.gov-app-id {
+.a4-app-id {
   font-size: 12pt;
   font-weight: 700;
-  margin-top: 8px;
+  margin-top: 6px;
   border: 1px solid #000;
   display: inline-block;
-  padding: 2px 10px;
+  padding: 2px 14px;
 }
 
-.gov-section-title {
-  font-size: 12pt;
+.a4-section-title {
+  font-size: 11.5pt;
   font-weight: 700;
-  margin-top: 10px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid #666;
+  margin-top: 8px;
+  margin-bottom: 3px;
+  border-bottom: 1px solid #333;
   padding-bottom: 2px;
 }
 
-.gov-row {
+.a4-row {
   display: flex;
-  margin-bottom: 4px;
-  font-size: 11pt;
+  margin-bottom: 3px;
+  font-size: 10.5pt;
 }
 
-.gov-label {
+.a4-label {
   font-weight: 600;
   margin-right: 6px;
+  white-space: nowrap;
 }
 
-.gov-value {
-  border-bottom: 1px dotted #444;
+.a4-value {
+  border-bottom: 1px dotted #555;
   flex-grow: 1;
   padding-left: 4px;
 }
 
-.gov-table-check {
+.a4-table-check {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
-  font-size: 10pt;
+  margin-top: 8px;
+  font-size: 9.5pt;
 }
 
-.gov-table-check th, .gov-table-check td {
+.a4-table-check th, .a4-table-check td {
   border: 1px solid #000;
-  padding: 4px 6px;
+  padding: 3px 6px;
 }
 
-.gov-signatures {
+.a4-signatures {
   display: flex;
   justify-content: space-between;
-  margin-top: 25px;
-  font-size: 11pt;
+  margin-top: 20px;
+  font-size: 10.5pt;
   text-align: center;
 }
 
-.gov-sig-block {
-  width: 45%;
+.a4-sig-block {
+  width: 46%;
 }
 
 /* --------------------------------------------------------------------------
@@ -972,6 +1152,11 @@ textarea.form-control {
     margin-left: 0;
     border-left: none;
     border-top: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  
+  .step-indicator {
+    flex-direction: column;
+    gap: 10px;
   }
   
   .col-12, .col-8, .col-6, .col-4, .col-3, .col-2 {
