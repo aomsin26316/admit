@@ -1,6 +1,6 @@
 /**
- * ระบบรับสมัครเรียนออนไลน์ (โควตา) - วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์
- * Front-end Logic, Validation, Dynamic Data, PDF Generation & Event Handlers
+ * ระบบรับสมัครเรียนออนไลน์ (โควตา) 2570 - วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์
+ * Interactive Multi-Step Wizard, Real-time Validation, PDF Generator & Micro-interactions
  */
 
 const CONFIG = {
@@ -10,7 +10,6 @@ const CONFIG = {
   STORAGE_KEY_SETTINGS: "TCAT_SETTINGS_2570"
 };
 
-// ข้อมูล 77 จังหวัดในประเทศไทย
 const THAI_PROVINCES = [
   "กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร", "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา",
   "ชลบุรี", "ชัยนาท", "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง", "ตราด", "ตาก", "นครนายก",
@@ -23,7 +22,6 @@ const THAI_PROVINCES = [
   "อ่างทอง", "อำนาจเจริญ", "อุดรธานี", "อุตรดิตถ์", "อุทัยธานี", "อุบลราชธานี"
 ];
 
-// สาขาวิชาเริ่มต้น
 let SYSTEM_SETTINGS = {
   isOpen: true,
   academicYear: "2570",
@@ -50,8 +48,8 @@ let SYSTEM_SETTINGS = {
   ]
 };
 
-// ตัวแปรเก็บข้อมูลใบสมัครปัจจุบันสำหรับพิมพ์หรือออก PDF
 let currentPrintedApplication = null;
+let currentWizardStep = 1;
 
 // ============================================================================
 // Initialization
@@ -68,7 +66,7 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 function setupNavTabs() {
-  const navLinks = document.querySelectorAll("#mainNav .nav-link[data-tab]");
+  const navLinks = document.querySelectorAll("#mainNav .nav-item-btn[data-tab]");
   navLinks.forEach(link => {
     link.addEventListener("click", function(e) {
       e.preventDefault();
@@ -83,7 +81,7 @@ function switchTab(tabId) {
   const activePane = document.getElementById(tabId);
   if (activePane) activePane.style.display = "block";
 
-  document.querySelectorAll("#mainNav .nav-link").forEach(link => {
+  document.querySelectorAll("#mainNav .nav-item-btn[data-tab]").forEach(link => {
     link.classList.remove("active");
     if (link.getAttribute("data-tab") === tabId) {
       link.classList.add("active");
@@ -91,6 +89,26 @@ function switchTab(tabId) {
   });
 
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function scrollToBranches() {
+  switchTab("tab-home");
+  setTimeout(() => {
+    const el = document.getElementById("sectionBranches");
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  }, 100);
+}
+
+function quickSelectMajor(keyword) {
+  switchTab("tab-apply");
+  goToWizardStep(1);
+  setTimeout(() => {
+    if (keyword.includes("ยนต์") || keyword.includes("กล") || keyword.includes("เชื่อม")) {
+      selectLevelCard('ปวช.', document.getElementById("cardLevelPwc"));
+    } else if (keyword.includes("บัญชี") || keyword.includes("คอมพิวเตอร์")) {
+      selectLevelCard('ปวส. (สายตรง)', document.getElementById("cardLevelPwsDirect"));
+    }
+  }, 150);
 }
 
 function initDateSelectors() {
@@ -185,7 +203,7 @@ function renderSystemStatus() {
 
 function renderBranchOptions() {
   const pwsSelect = document.getElementById("pwsMajor");
-  pwsSelect.innerHTML = `<option value="">-- เลือกสาขาวิชา --</option>`;
+  pwsSelect.innerHTML = `<option value="">-- กรุณาคลิกเลือกสาขาวิชา --</option>`;
   SYSTEM_SETTINGS.branchesPWS.forEach(b => {
     const opt = document.createElement("option");
     opt.value = b;
@@ -211,18 +229,21 @@ function renderBranchOptions() {
 }
 
 // ============================================================================
-// Form Event Handlers & Level Selection
+// Multi-Step Form Wizard Control
 // ============================================================================
 
-function handleLevelChange(level) {
-  const tip = document.getElementById("noLevelSelectedTip");
+function selectLevelCard(level, cardEl) {
+  document.querySelectorAll(".level-card").forEach(c => c.classList.remove("selected"));
+  if (cardEl) cardEl.classList.add("selected");
+
+  const hidden = document.getElementById("hiddenApplyLevel");
+  hidden.value = level;
+
   const pwsBox = document.getElementById("pwsBranchSelection");
   const pwcBox = document.getElementById("pwcBranchSelection");
   const pwsMajor = document.getElementById("pwsMajor");
   const pwcMajor1 = document.getElementById("pwcMajor1");
   const pwcMajor2 = document.getElementById("pwcMajor2");
-
-  tip.style.display = "none";
 
   if (level.startsWith("ปวส.")) {
     pwsBox.style.display = "block";
@@ -230,16 +251,143 @@ function handleLevelChange(level) {
     pwsMajor.required = true;
     pwcMajor1.required = false;
     pwcMajor2.required = false;
-    pwcMajor1.value = "";
-    pwcMajor2.value = "";
   } else if (level === "ปวช.") {
     pwsBox.style.display = "none";
     pwcBox.style.display = "block";
     pwsMajor.required = false;
     pwcMajor1.required = true;
     pwcMajor2.required = true;
-    pwsMajor.value = "";
   }
+}
+
+function goToWizardStep(stepNum) {
+  currentWizardStep = stepNum;
+
+  document.querySelectorAll(".wizard-panel").forEach(p => p.classList.remove("active"));
+  const activePanel = document.getElementById(`stepPanel${stepNum}`);
+  if (activePanel) activePanel.classList.add("active");
+
+  const nodes = document.querySelectorAll("#wizardStepper .wizard-step-node");
+  nodes.forEach((node, idx) => {
+    node.classList.remove("active", "completed");
+    if (idx + 1 === stepNum) {
+      node.classList.add("active");
+    } else if (idx + 1 < stepNum) {
+      node.classList.add("completed");
+    }
+  });
+
+  window.scrollTo({ top: 320, behavior: "smooth" });
+}
+
+function nextWizardStep(fromStep) {
+  if (fromStep === 1) {
+    const level = document.getElementById("hiddenApplyLevel").value;
+    if (!level) {
+      alert("กรุณาคลิกเลือกการ์ดระดับการศึกษาที่ต้องการสมัคร");
+      return;
+    }
+    if (level.startsWith("ปวส.") && !document.getElementById("pwsMajor").value) {
+      alert("กรุณาเลือกสาขาวิชาที่ต้องการสมัคร");
+      document.getElementById("pwsMajor").focus();
+      return;
+    }
+    if (level === "ปวช.") {
+      if (!document.getElementById("pwcMajor1").value || !document.getElementById("pwcMajor2").value) {
+        alert("กรุณาเลือกสาขาวิชาอันดับที่ 1 และ 2 ให้ครบถ้วน");
+        return;
+      }
+      if (!validateBranchChoice()) return;
+    }
+  } else if (fromStep === 2) {
+    const p = document.getElementById("applicantPrefix").value;
+    const f = document.getElementById("applicantFirstName").value.trim();
+    const l = document.getElementById("applicantLastName").value.trim();
+    const c = document.getElementById("citizenId").value.trim();
+    const ph = document.getElementById("phone").value.trim();
+
+    if (!p || !f || !l) {
+      alert("กรุณากรอกชื่อและนามสกุลให้ครบถ้วน");
+      return;
+    }
+    if (!validateThaiCitizenID(c)) {
+      alert("กรุณาตรวจสอบเลขประจำตัวประชาชน 13 หลักให้ถูกต้องตามความเป็นจริง");
+      document.getElementById("citizenId").focus();
+      return;
+    }
+    if (!/^0\d{9}$/.test(ph)) {
+      alert("กรุณากรอกหมายเลขโทรศัพท์ 10 หลัก (เฉพาะตัวเลข)");
+      document.getElementById("phone").focus();
+      return;
+    }
+  } else if (fromStep === 3) {
+    const fat = document.getElementById("fatherName").value.trim();
+    const mot = document.getElementById("motherName").value.trim();
+    const hNo = document.getElementById("addrHouseNo").value.trim();
+    const sub = document.getElementById("addrSubdistrict").value.trim();
+    const dis = document.getElementById("addrDistrict").value.trim();
+    const prv = document.getElementById("addrProvince").value;
+    const zip = document.getElementById("addrZipcode").value.trim();
+
+    if (!fat || !mot) {
+      alert("กรุณากรอกข้อมูลบิดาและมารดาให้ครบถ้วน");
+      return;
+    }
+    if (!hNo || !sub || !dis || !prv || !zip) {
+      alert("กรุณากรอกข้อมูลที่อยู่ปัจจุบันให้ครบถ้วน");
+      return;
+    }
+  } else if (fromStep === 4) {
+    const lvl = document.getElementById("prevLevel").value.trim();
+    const sch = document.getElementById("prevSchoolName").value.trim();
+    const sub = document.getElementById("prevSchoolSubdistrict").value.trim();
+    const dis = document.getElementById("prevSchoolDistrict").value.trim();
+    const prv = document.getElementById("prevSchoolProvince").value;
+    const gpax = parseFloat(document.getElementById("gpax").value);
+
+    if (!lvl || !sch || !sub || !dis || !prv) {
+      alert("กรุณากรอกข้อมูลสถานศึกษาเดิมให้ครบถ้วน");
+      return;
+    }
+    if (isNaN(gpax) || gpax < 0 || gpax > 4.00) {
+      alert("ผลการเรียนเฉลี่ยสะสม (GPAX) ต้องอยู่ระหว่าง 0.00 - 4.00");
+      document.getElementById("gpax").focus();
+      return;
+    }
+  }
+
+  goToWizardStep(fromStep + 1);
+}
+
+function prepareStep6Summary() {
+  if (!uploadedFilesBase64["filePhoto"] || !uploadedFilesBase64["fileTranscript"] || !uploadedFilesBase64["fileIdCard"]) {
+    alert("กรุณาแนบไฟล์เอกสารหลักฐานบังคับให้ครบทั้ง 3 รายการ (รูปถ่าย, ผลการเรียน ปพ.1, สำเนาบัตร ปชช.)");
+    return;
+  }
+
+  const level = document.getElementById("hiddenApplyLevel").value;
+  let major = "-";
+  if (level.startsWith("ปวส.")) {
+    major = document.getElementById("pwsMajor").value;
+  } else {
+    major = `${document.getElementById("pwcMajor1").value} (อันดับ 1) / ${document.getElementById("pwcMajor2").value} (อันดับ 2)`;
+  }
+
+  const prefix = document.getElementById("applicantPrefix").value;
+  const fname = document.getElementById("applicantFirstName").value.trim();
+  const lname = document.getElementById("applicantLastName").value.trim();
+  const citizen = document.getElementById("citizenId").value.trim();
+  const school = document.getElementById("prevSchoolName").value.trim();
+  const gpax = document.getElementById("gpax").value;
+
+  document.getElementById("summaryLevel").textContent = level;
+  document.getElementById("summaryMajor").textContent = major;
+  document.getElementById("summaryName").textContent = `${prefix}${fname} ${lname}`;
+  document.getElementById("summaryCitizenId").textContent = citizen;
+  document.getElementById("summarySchool").textContent = school;
+  document.getElementById("summaryGpax").textContent = `${gpax} (5 ภาคเรียน)`;
+
+  goToWizardStep(6);
 }
 
 function validateBranchChoice() {
@@ -259,7 +407,7 @@ function validateBranchChoice() {
 }
 
 // ============================================================================
-// Validation Rules (Thai Citizen ID Checksum, GPAX, Phone)
+// Validation Rules (Thai Citizen ID Checksum)
 // ============================================================================
 
 function validateThaiCitizenID(id) {
@@ -275,22 +423,34 @@ function validateThaiCitizenID(id) {
 function validateCitizenIdField(input, feedbackId = "citizenIdFeedback") {
   const val = input.value.trim();
   const feedback = document.getElementById(feedbackId);
+  const badge = document.getElementById("citizenBadge");
 
   if (val.length === 13) {
     if (validateThaiCitizenID(val)) {
       input.classList.remove("is-invalid");
       input.classList.add("is-valid");
       if (feedback) feedback.classList.remove("is-visible");
+      if (badge) {
+        badge.style.display = "inline";
+        badge.style.color = "#10b981";
+        badge.textContent = "✓ ตรวจสอบผ่าน";
+      }
       return true;
     } else {
       input.classList.remove("is-valid");
       input.classList.add("is-invalid");
       if (feedback) feedback.classList.add("is-visible");
+      if (badge) {
+        badge.style.display = "inline";
+        badge.style.color = "#f43f5e";
+        badge.textContent = "✕ เลขบัตรไม่ถูกต้อง";
+      }
       return false;
     }
   } else {
     input.classList.remove("is-valid");
     if (feedback) feedback.classList.remove("is-visible");
+    if (badge) badge.style.display = "none";
     return false;
   }
 }
@@ -311,7 +471,7 @@ function handleFileSelected(e, previewId, fileType = "all") {
   if (file.size > 5 * 1024 * 1024) {
     alert("ขออภัย ไฟล์มีขนาดเกิน 5 MB กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน 5 MB");
     inputEl.value = "";
-    previewDiv.innerHTML = `<span style="color:#dc2626;">ขนาดไฟล์เกิน 5 MB</span>`;
+    previewDiv.innerHTML = `<span style="color:#ef4444; font-size: 12px;">ขนาดไฟล์เกิน 5 MB</span>`;
     delete uploadedFilesBase64[inputEl.id];
     return;
   }
@@ -328,11 +488,11 @@ function handleFileSelected(e, previewId, fileType = "all") {
 
     if (file.type.startsWith("image/")) {
       previewDiv.innerHTML = `
-        <span style="color:#166534; font-size: 13px;">✓ แนบไฟล์แล้ว: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
-        <img src="${base64Data}" alt="พรีวิว" style="max-height: 44px; border: 1px solid #ccc; border-radius: 2px; margin-left: 8px;">
+        <span style="color:#10b981; font-size: 13px; font-weight: 600;">✓ แนบไฟล์แล้ว: ${file.name}</span>
+        <img src="${base64Data}" alt="พรีวิว" style="max-height: 44px; border: 1px solid #ccc; border-radius: 4px; margin-left: 8px;">
       `;
     } else {
-      previewDiv.innerHTML = `<span style="color:#166534; font-size: 13px;">✓ แนบเอกสารแล้ว: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>`;
+      previewDiv.innerHTML = `<span style="color:#10b981; font-size: 13px; font-weight: 600;">✓ แนบเอกสารแล้ว: ${file.name}</span>`;
     }
   };
   reader.readAsDataURL(file);
@@ -353,33 +513,8 @@ async function handleApplicationSubmit(e) {
   const citizenIdInput = document.getElementById("citizenId");
   if (!validateThaiCitizenID(citizenIdInput.value.trim())) {
     alert("กรุณาตรวจสอบเลขประจำตัวประชาชน 13 หลัก ให้ถูกต้องตามความเป็นจริง");
+    goToWizardStep(2);
     citizenIdInput.focus();
-    return;
-  }
-
-  const phone = document.getElementById("phone").value.trim();
-  if (!/^0\d{9}$/.test(phone)) {
-    alert("หมายเลขโทรศัพท์ต้องเป็นตัวเลข 10 หลัก และขึ้นต้นด้วย 0 เช่น 0812345678");
-    document.getElementById("phone").focus();
-    return;
-  }
-
-  const gpax = parseFloat(document.getElementById("gpax").value);
-  if (isNaN(gpax) || gpax < 0 || gpax > 4.00) {
-    alert("ผลการเรียนเฉลี่ยสะสม (GPAX) ต้องมีค่าระหว่าง 0.00 - 4.00");
-    document.getElementById("gpax").focus();
-    return;
-  }
-
-  const levelRadio = document.querySelector('input[name="applyLevel"]:checked');
-  if (!levelRadio) {
-    alert("กรุณาเลือกระดับการศึกษาที่ต้องการสมัคร");
-    return;
-  }
-
-  const levelVal = levelRadio.value;
-  if (levelVal === "ปวช." && !validateBranchChoice()) {
-    alert("สาขาวิชาลำดับที่ 1 และลำดับที่ 2 ต้องไม่เป็นสาขาเดียวกัน");
     return;
   }
 
@@ -390,15 +525,10 @@ async function handleApplicationSubmit(e) {
     return;
   }
 
-  if (!uploadedFilesBase64["filePhoto"] || !uploadedFilesBase64["fileTranscript"] || !uploadedFilesBase64["fileIdCard"]) {
-    alert("กรุณาแนบไฟล์เอกสารหลักฐานบังคับให้ครบทั้ง 3 รายการ (รูปถ่าย, ผลการเรียน, สำเนาบัตรประชาชน)");
-    return;
-  }
-
   const applicants = getLocalApplicants();
   const isDuplicate = applicants.some(a => a.citizenId === citizenIdInput.value.trim() && a.academicYear === CONFIG.ACADEMIC_YEAR);
   if (isDuplicate) {
-    alert("ขออภัย เลขประจำตัวประชาชนนี้ได้ยื่นใบสมัครเรียนในปีการศึกษานี้แล้ว ไม่สามารถสมัครซ้ำได้ กรุณาตรวจสอบที่เมนู 'ตรวจสอบสถานะ'");
+    alert("ขออภัย เลขประจำตัวประชาชนนี้ได้ยื่นใบสมัครเรียนในปีการศึกษานี้แล้ว ไม่สามารถสมัครซ้ำได้ กรุณาตรวจสอบที่เมนู 'ติดตามสถานะ'");
     return;
   }
 
@@ -408,7 +538,7 @@ async function handleApplicationSubmit(e) {
 
   const payload = {
     academicYear: CONFIG.ACADEMIC_YEAR,
-    applyLevel: levelVal,
+    applyLevel: document.getElementById("hiddenApplyLevel").value,
     prefix: document.getElementById("applicantPrefix").value,
     firstName: document.getElementById("applicantFirstName").value.trim(),
     lastName: document.getElementById("applicantLastName").value.trim(),
@@ -429,7 +559,7 @@ async function handleApplicationSubmit(e) {
       district: document.getElementById("addrDistrict").value.trim(),
       province: document.getElementById("addrProvince").value,
       zipcode: document.getElementById("addrZipcode").value.trim(),
-      phone: phone
+      phone: document.getElementById("phone").value.trim()
     },
     previousEducation: {
       level: document.getElementById("prevLevel").value.trim(),
@@ -438,7 +568,7 @@ async function handleApplicationSubmit(e) {
       subdistrict: document.getElementById("prevSchoolSubdistrict").value.trim(),
       district: document.getElementById("prevSchoolDistrict").value.trim(),
       province: document.getElementById("prevSchoolProvince").value,
-      gpax: gpax.toFixed(2),
+      gpax: parseFloat(document.getElementById("gpax").value).toFixed(2),
       prevMajor: document.getElementById("prevMajor").value.trim()
     },
     branches: {
@@ -482,7 +612,7 @@ async function handleApplicationSubmit(e) {
     if (result && result.success) {
       payload.applicationId = result.applicationId;
       payload.status = "รอตรวจสอบ";
-      payload.remarks = "ยื่นใบสมัครผ่านระบบออนไลน์เรียบร้อย อยู่ระหว่างการตรวจสอบเอกสารหลักฐาน";
+      payload.remarks = "ยื่นใบสมัครออนไลน์เรียบร้อย อยู่ระหว่างการตรวจสอบเอกสารหลักฐาน";
       payload.createdDate = new Date().toLocaleDateString("th-TH", {
         year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
       });
@@ -492,6 +622,16 @@ async function handleApplicationSubmit(e) {
 
       document.getElementById("modalAppId").textContent = result.applicationId;
       openModal("modalSuccess");
+
+      // Confetti celebration effect!
+      if (typeof confetti === "function") {
+        confetti({
+          particleCount: 120,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+
       handleFormReset();
     } else {
       alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + (result ? result.message : "กรุณาลองใหม่อีกครั้ง"));
@@ -508,6 +648,7 @@ async function handleApplicationSubmit(e) {
     currentPrintedApplication = payload;
     document.getElementById("modalAppId").textContent = generatedAppId;
     openModal("modalSuccess");
+    if (typeof confetti === "function") confetti({ particleCount: 100 });
     handleFormReset();
   } finally {
     btnSubmit.disabled = false;
@@ -521,7 +662,8 @@ function handleFormReset() {
   for (let key in uploadedFilesBase64) delete uploadedFilesBase64[key];
   document.getElementById("pwsBranchSelection").style.display = "none";
   document.getElementById("pwcBranchSelection").style.display = "none";
-  document.getElementById("noLevelSelectedTip").style.display = "block";
+  document.querySelectorAll(".level-card").forEach(c => c.classList.remove("selected"));
+  goToWizardStep(1);
 }
 
 // ============================================================================
@@ -591,7 +733,7 @@ async function handleStatusSearch(e) {
     document.getElementById("resDate").textContent = applicant.createdDate || applicant.timestamp || "-";
     document.getElementById("resRemarks").textContent = applicant.remarks || "-";
 
-    renderStatusBadge("resStatusBadge", applicant.status || "รอตรวจสอบ");
+    document.getElementById("resStatusBadge").textContent = applicant.status || "รอตรวจสอบ";
 
     const btnReupload = document.getElementById("btnOpenReupload");
     if (applicant.status === "เอกสารไม่ครบ (แก้ไข)") {
@@ -606,19 +748,6 @@ async function handleStatusSearch(e) {
     resultContainer.style.display = "none";
     notFoundBox.style.display = "block";
   }
-}
-
-function renderStatusBadge(containerId, status) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  let badgeClass = "status-pending";
-  if (status === "เอกสารไม่ครบ (แก้ไข)") badgeClass = "status-fix";
-  else if (status === "ผ่านการคัดเลือก") badgeClass = "status-approved";
-  else if (status === "ไม่ผ่าน") badgeClass = "status-rejected";
-  else if (status === "มอบตัวแล้ว") badgeClass = "status-enrolled";
-
-  container.innerHTML = `<span class="status-badge ${badgeClass}">${status}</span>`;
 }
 
 function openReuploadModal() {
@@ -687,7 +816,7 @@ async function handleReuploadSubmit(e) {
 }
 
 // ============================================================================
-// PDF Application Report Generation & Print Functions
+// PDF Application Report Generation (Official A4 Standard Format)
 // ============================================================================
 
 function toThaiNumerals(str) {
@@ -696,9 +825,6 @@ function toThaiNumerals(str) {
   return str.toString().replace(/[0-9]/g, match => thaiDigits[parseInt(match, 10)]);
 }
 
-/**
- * สร้าง HTML สำหรับใบสมัครทางการ A4 ตามแบบฟอร์มกระดาษ 100%
- */
 function buildA4ApplicationHtml(app) {
   const thaiYear = toThaiNumerals(app.academicYear || "2570");
   const thaiAppId = toThaiNumerals(app.applicationId || "Q70-0001");
@@ -831,9 +957,6 @@ function buildA4ApplicationHtml(app) {
   `;
 }
 
-/**
- * ดาวน์โหลดใบสมัครเป็นไฟล์ PDF รายบุคคลโดยตรง
- */
 function downloadApplicationPdf(targetApp = null) {
   const app = targetApp || currentPrintedApplication;
   if (!app) {
@@ -864,9 +987,6 @@ function downloadApplicationPdf(targetApp = null) {
   }
 }
 
-/**
- * สั่งพิมพ์ผ่านเบราว์เซอร์
- */
 function printCurrentApplication() {
   if (!currentPrintedApplication) {
     alert("ไม่พบข้อมูลใบสมัครที่จะพิมพ์");
