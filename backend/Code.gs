@@ -13,6 +13,12 @@ const SHEETS = {
   SETTINGS: "Settings"
 };
 
+// การตั้งค่า Google Drive Folder ปลายทาง
+const DRIVE_CONFIG = {
+  TARGET_FOLDER_ID: "1mhcdhFve6RFk8sJua3iF4Lp8OOYF2U8I", // โฟลเดอร์ Google Drive สำหรับจัดเก็บข้อมูลและไฟล์แนบ
+  FOLDER_NAME: "ระบบรับสมัคร_วท_ท่าหลวง_2570"
+};
+
 // ============================================================================
 // Web App Entry Points (doGet & doPost)
 // ============================================================================
@@ -401,6 +407,13 @@ function saveFileToDrive(folder, fileObj, fileNamePrefix, citizenId, application
 }
 
 function getOrCreateDriveFolder(folderName) {
+  if (DRIVE_CONFIG.TARGET_FOLDER_ID) {
+    try {
+      return DriveApp.getFolderById(DRIVE_CONFIG.TARGET_FOLDER_ID);
+    } catch (e) {
+      Logger.log("Folder by ID error, fallback to search by name: " + e);
+    }
+  }
   const folders = DriveApp.getFoldersByName(folderName);
   if (folders.hasNext()) {
     return folders.next();
