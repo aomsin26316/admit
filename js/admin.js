@@ -4,7 +4,7 @@
  */
 
 const ADMIN_CONFIG = {
-  GAS_API_URL: "", // ใส่ URL เมื่อ Deploy Google Apps Script Web App
+  GAS_API_URL: "https://script.google.com/macros/s/AKfycbwLsG_kot3GcOny0zU_SwVrLpmyNHf5kSpN7MQQVk1GLA9VD3yb_zYRJLJfF1b75PM7/exec",
   STORAGE_KEY_APPLICANTS: "TCAT_APPLICANTS_DB_2570",
   STORAGE_KEY_SETTINGS: "TCAT_SETTINGS_2570",
   STORAGE_KEY_AUDIT: "TCAT_AUDIT_LOGS_2570",

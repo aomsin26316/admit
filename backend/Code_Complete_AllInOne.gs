@@ -228,7 +228,7 @@ function getSystemSettings() {
   return {
     success: true,
     settings: {
-      isOpen: settingsMap["IS_OPEN"] === "true",
+      isOpen: settingsMap["IS_OPEN"] === true || String(settingsMap["IS_OPEN"]).toLowerCase() === "true",
       academicYear: settingsMap["ACADEMIC_YEAR"] || "2570",
       applyStartDate: settingsMap["APPLY_START_DATE"] || "2026-12-01",
       applyEndDate: settingsMap["APPLY_END_DATE"] || "2027-01-31",

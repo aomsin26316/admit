@@ -6,7 +6,7 @@
 // Configuration: ใส่ URL ของ Google Apps Script Web App เมื่อ Deploy แล้ว
 // หากเว้นว่างไว้ ระบบจะทำงานในโหมด Standalone / Local Simulation อัตโนมัติ
 const CONFIG = {
-  GAS_API_URL: "", // เช่น "https://script.google.com/macros/s/AKfycb.../exec"
+  GAS_API_URL: "https://script.google.com/macros/s/AKfycbwLsG_kot3GcOny0zU_SwVrLpmyNHf5kSpN7MQQVk1GLA9VD3yb_zYRJLJfF1b75PM7/exec",
   ACADEMIC_YEAR: "2570",
   STORAGE_KEY_APPLICANTS: "TCAT_APPLICANTS_DB_2570",
   STORAGE_KEY_SETTINGS: "TCAT_SETTINGS_2570"
@@ -161,7 +161,17 @@ async function loadSystemSettings() {
       const res = await fetch(`${CONFIG.GAS_API_URL}?action=getSettings`);
       const data = await res.json();
       if (data && data.success && data.settings) {
-        SYSTEM_SETTINGS = data.settings;
+        SYSTEM_SETTINGS = {
+          ...SYSTEM_SETTINGS,
+          ...data.settings,
+          isOpen: data.settings.isOpen === true || String(data.settings.isOpen).toLowerCase() === "true" || data.settings.isOpen === "TRUE"
+        };
+        if (data.settings.branchesPWC && data.settings.branchesPWC.length > 0) {
+          SYSTEM_SETTINGS.branchesPWC = data.settings.branchesPWC;
+        }
+        if (data.settings.branchesPWS && data.settings.branchesPWS.length > 0) {
+          SYSTEM_SETTINGS.branchesPWS = data.settings.branchesPWS;
+        }
         localStorage.setItem(CONFIG.STORAGE_KEY_SETTINGS, JSON.stringify(SYSTEM_SETTINGS));
       }
     } catch (err) {
